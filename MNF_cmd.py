@@ -168,4 +168,4 @@ if __name__ == "__main__":
             print("                2  Reduce the second component noise and return the inverse transform")
             print("                   Use Savitzky Golay methods")
             print("")
-            print("example: python MNF_cmd.py -c 10 -m 1")
+            print("example: python MNF_cmd.py -f tif -c 10")
