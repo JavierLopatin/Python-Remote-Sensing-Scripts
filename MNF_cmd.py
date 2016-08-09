@@ -1,9 +1,12 @@
 #! /usr/bin/env python
 
-#########################################################################
+########################################################################################################################
 #
 # MNF_cmd.py
-# A python script to perform MNF transformation to remote sesning data
+# A python script to perform MNF transformation to remote sesning data.
+#
+# Info: The script perform MNF transformation to all raster images stored in a folder. 
+#
 # Author: Javier Lopatin
 # Email: javierlopatin@gmail.com
 # Date: 09/08/2016
@@ -11,7 +14,7 @@
 #
 # Usage:
 #
-# python MNF.py <Imput raster format> <Number of components> <Method option>'
+# python MNF.py -f <Imput raster format> -c <Number of components> -m <Method option> -v <Accumulated explained variance> 
 #
 # Method options: 1 (default) regular MNF transformation
 #                 2  Reduce the second component noise and return the inverse transform
@@ -28,8 +31,7 @@
 #             # Get the reduced nose MNF with Savitzky Golay
 #             python MNF_cmd.py -f tif -c 10 -m 2
 #
-#########################################################################
-
+########################################################################################################################
 
 import os, glob, argparse
 import numpy as np
