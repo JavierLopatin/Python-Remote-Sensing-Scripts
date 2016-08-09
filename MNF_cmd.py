@@ -118,7 +118,7 @@ if __name__ == "__main__":
 
     parser.add_argument('-f','--format', help='Imput raster format, e.g: tif', type=str)
     parser.add_argument('-c','--components', help='Number of components', type=int, required=True)
-    parser.add_argument('-m','--method', help='MNF method to apply', type=int, default=1)
+    parser.add_argument('-m','--method', help='MNF method to apply: 1 (default) = regular MNF transformation; 2 = Savitzky Golay noise reduction MNF', type=int, default=1)
     parser.add_argument('-v','--variance', help='Accumulated explained variance', action="store_true", default=False)
     
     parser.add_argument('--version', action='version', version='%(prog)s 1.0')
@@ -147,8 +147,6 @@ if __name__ == "__main__":
                 r = rasterio.open(imageList[i])            
                 r2 = r.read()
                 img = reshape_as_image(r2)
-                #print("Explained variances of " + name + "are:")
-               # explained_variance(img)
                 print("Creating MNF components of " + name)
                 mnf = MNF(img, n_components)
                 saveMNF(mnf, r)
@@ -159,14 +157,12 @@ if __name__ == "__main__":
                 r = rasterio.open(imageList[i])            
                 r2 = r.read()
                 img = reshape_as_image(r2)
-                #print("Explained variances of " + name + "are:")
-               # explained_variance(img)
                 print("Creating MNF components of " + name)
                 mnf = MNF_reduce_component_2_noise_and_invert(img, n_components)
                 saveMNF(mnf, r) 
         else: 
             print('ERROR!. Command should have the form:')
-            print('python MNF.py <Number of components> <Method option>')
+            print('python MNF.py -f <Imput raster formar> -c <Number of components> -m <Method option>[optional] -v <Accumulated explained variance>[optional]')
             print("")
             print("Method options: 1 (default) regular MNF transformation")
             print("                2  Reduce the second component noise and return the inverse transform")
