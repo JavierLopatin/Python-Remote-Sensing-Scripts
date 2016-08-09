@@ -1,9 +1,14 @@
 #! /usr/bin/env python
 
-#########################################################################
+########################################################################################################################
 #
-# MNF_cmd.py
+# BrightnessNormalization_cmd
+#
 # A python script to perform Brigtness Normalization of hyperspectral data
+#
+# Info: The script apply the Brightness Normalization presented in 
+#       Feilhauer et al., 2010 to all rasters contained in a folder
+#
 # Author: Javier Lopatin
 # Email: javierlopatin@gmail.com
 # Date: 09/08/2016
@@ -14,10 +19,14 @@
 # python MNF.py <Imput raster format> 
 #
 # examples:    python BrightnessNormalization_cmd.py -f tif 
-#            
+# 
+# Bibliography:
 #
-#########################################################################
-
+# Feilhauer, H., Asner, G. P., Martin, R. E., Schmidtlein, S. (2010): Brightness-normalized Partial Least Squares
+# Regression for hyperspectral data. Journal of Quantitative Spectroscopy and Radiative Transfer 111(12-13),
+# pp. 1947–1957. 10.1016/j.jqsrt.2010.03.007
+#
+########################################################################################################################
 
 import os, glob, argparse
 import numpy as np
@@ -30,7 +39,8 @@ except ImportError:
 ## Functions 
 
 def BrigthnessNormalization(img):
-    bn = img / np.sqrt( np.sum((img**2), 0) )
+    r = img / np.sqrt( np.sum((img**2), 0) )
+    bn = np.apply_along_axis(BrigthnessNormalization, 0, r)
     return bn
 
 def saveImage(img, inputRaster):
@@ -63,8 +73,9 @@ if __name__ == "__main__":
     for i in range(len(imageList)):
         name = os.path.basename(imageList[i])
         r = rasterio.open(imageList[i])            
-        r2 = r.read()
-        bn = np.apply_along_axis(BrigthnessNormalization, 0, r2)
+        img = r.read()
+        print("Normalizing "+name)
+        bn = BrigthnessNormalization(img)
         saveImage(bn, r)
 
 
