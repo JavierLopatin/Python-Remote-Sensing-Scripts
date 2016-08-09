@@ -40,8 +40,7 @@ except ImportError:
 
 def BrigthnessNormalization(img):
     r = img / np.sqrt( np.sum((img**2), 0) )
-    bn = np.apply_along_axis(r, 0, img)
-    return bn
+    return r
 
 def saveImage(img, inputRaster):
     # Save TIF image to a nre directory of name MNF
@@ -75,7 +74,7 @@ if __name__ == "__main__":
         r = rasterio.open(imageList[i])            
         img = r.read()
         print("Normalizing "+name)
-        bn = BrigthnessNormalization(img)
+        bn = np.apply_along_axis(BrigthnessNormalization, 0, img)
         saveImage(bn, r)
 
 
