@@ -12,12 +12,20 @@
 # Usage:
 #
 # python MNF.py <Imput raster format> <Number of components> <Method option>'
-# Method options: 1 (default) regular MNF transformation
-#   2  Reduce the second component noise and return the inverse transform
-#                   Use Savitzky Golay methods
 #
-# examples:   python MNF_cmd.py -f tif -c 10 
+# Method options: 1 (default) regular MNF transformation
+#                 2  Reduce the second component noise and return the inverse transform
+#                    Use Savitzky Golay methods
+#
+# examples:   
+#             # Get the accumulated explained variance
+#             python MNF_cmd.py -f tif -c 1 -v
+#
+#             # Get the regular MNF transformation
+#             python MNF_cmd.py -f tif -c 10 
 #             python MNF_cmd.py -f tif -c 10 -m 1
+#
+#             # Get the reduced nose MNF with Savitzky Golay
 #             python MNF_cmd.py -f tif -c 10 -m 2
 #
 #########################################################################
@@ -36,6 +44,8 @@ try:
 except ImportError:
    print("ERROR: Could not import Pysptools Python library.")
    print("Check if Pysptools is installed.")
+
+## Functions 
 
 def MNF(img, n_components):
     mnf = ns.MNF()
@@ -100,14 +110,16 @@ def saveMNF(img, inputRaster):
     new_dataset.write(img2)
     new_dataset.close()
 
-
+### Run process
+        
 if __name__ == "__main__":
     # create the arguments for the algorithm
-    parser = argparse.ArgumentParser(description='Create MNF transformation')
+    parser = argparse.ArgumentParser()
 
     parser.add_argument('-f','--format', help='Imput raster format, e.g: tif', type=str)
     parser.add_argument('-c','--components', help='Number of components', type=int, required=True)
     parser.add_argument('-m','--method', help='MNF method to apply', type=int, default=1)
+    parser.add_argument('-v','--variance', help='Accumulated explained variance', action="store_true", default=False)
     
     parser.add_argument('--version', action='version', version='%(prog)s 1.0')
     args = vars(parser.parse_args())
@@ -120,36 +132,44 @@ if __name__ == "__main__":
     if not os.path.exists("MNF"):
         os.makedirs("MNF")
 
-    if args['method']==1:
+    if args['variance']==True:
         for i in range(len(imageList)):
             name = os.path.basename(imageList[i])
             r = rasterio.open(imageList[i])            
             r2 = r.read()
             img = reshape_as_image(r2)
-            print("Explained variances of " + name + "are:")
+            print("Accumulated explained variances of " + name + "are:")
             explained_variance(img)
-            print("Creating MNF components of " + name)
-            mnf = MNF(img, n_components)
-            saveMNF(mnf, r)
-                
-    elif args['method']==2:
-        for i in range(len(imageList)):
-            name = os.path.basename(imageList[i])
-            r = rasterio.open(imageList[i])            
-            r2 = r.read()
-            img = reshape_as_image(r2)
-            print("Explained variances of " + name + "are:")
-            explained_variance(img)
-            print("Creating MNF components of " + name)
-            mnf = MNF_reduce_component_2_noise_and_invert(img, n_components)
-            saveMNF(mnf, r) 
-    else: 
-        print('ERROR!. Command should have the form:')
-        print('python MNF.py <Number of components> <Method option>')
-        print("")
-        print("Method options: 1 (default) regular MNF transformation")
-        print("                2  Reduce the second component noise and return the inverse transform")
-        print("                   Use Savitzky Golay methods")
-        print("")
-        print("example: python MNF_cmd.py -c 10 -m 1")
-        
+    else:  
+        if args['method']==1:
+            for i in range(len(imageList)):
+                name = os.path.basename(imageList[i])
+                r = rasterio.open(imageList[i])            
+                r2 = r.read()
+                img = reshape_as_image(r2)
+                #print("Explained variances of " + name + "are:")
+               # explained_variance(img)
+                print("Creating MNF components of " + name)
+                mnf = MNF(img, n_components)
+                saveMNF(mnf, r)
+                    
+        elif args['method']==2:
+            for i in range(len(imageList)):
+                name = os.path.basename(imageList[i])
+                r = rasterio.open(imageList[i])            
+                r2 = r.read()
+                img = reshape_as_image(r2)
+                #print("Explained variances of " + name + "are:")
+               # explained_variance(img)
+                print("Creating MNF components of " + name)
+                mnf = MNF_reduce_component_2_noise_and_invert(img, n_components)
+                saveMNF(mnf, r) 
+        else: 
+            print('ERROR!. Command should have the form:')
+            print('python MNF.py <Number of components> <Method option>')
+            print("")
+            print("Method options: 1 (default) regular MNF transformation")
+            print("                2  Reduce the second component noise and return the inverse transform")
+            print("                   Use Savitzky Golay methods")
+            print("")
+            print("example: python MNF_cmd.py -c 10 -m 1")
