@@ -40,7 +40,7 @@ except ImportError:
 
 def BrigthnessNormalization(img):
     r = img / np.sqrt( np.sum((img**2), 0) )
-    bn = np.apply_along_axis(BrigthnessNormalization, 0, r)
+    bn = np.apply_along_axis(r, 0, img)
     return bn
 
 def saveImage(img, inputRaster):
