@@ -16,7 +16,7 @@
 #
 # Usage:
 #
-# python MNF.py <Imput raster format> 
+# python MNF.py <Imput raster format [default = tif]> 
 #
 # examples:    python BrightnessNormalization_cmd.py
 #              python BrightnessNormalization_cmd.py -f img
