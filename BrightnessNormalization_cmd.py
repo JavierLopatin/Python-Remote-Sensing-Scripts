@@ -18,7 +18,8 @@
 #
 # python MNF.py <Imput raster format> 
 #
-# examples:    python BrightnessNormalization_cmd.py -f tif 
+# examples:    python BrightnessNormalization_cmd.py
+#              python BrightnessNormalization_cmd.py -f img
 # 
 # Bibliography:
 #
@@ -59,7 +60,7 @@ if __name__ == "__main__":
 # create the arguments for the algorithm
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-f','--format', help='Imput raster format, e.g: tif', type=str)   
+    parser.add_argument('-f','--format', help='Imput raster format, e.g: tif', type=str, default="tif")   
     parser.add_argument('--version', action='version', version='%(prog)s 1.0')
     args = vars(parser.parse_args())
 
