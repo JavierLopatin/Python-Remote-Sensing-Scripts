@@ -4,7 +4,8 @@
 #
 # ExtractValues.py
 #
-# A python script to extract raster values using a shapefile. Results are stored in a CSV file
+# A python script to extract raster values using a shapefile (only polygon). 
+# Results are stored in a CSV file
 #
 # Author: Javier Lopatin
 # Email: javierlopatin@gmail.com
@@ -105,7 +106,7 @@ if __name__ == "__main__":
     parser.add_argument('-i', '--id', help='Shapefile ID to store in the CSV', type=str)
     parser.add_argument('--version', action='version', version='%(prog)s 1.0')
     args = vars(parser.parse_args())
-
+    
     # run Extraction
     raster = args['raster']
     shp    = args['shapefile']
