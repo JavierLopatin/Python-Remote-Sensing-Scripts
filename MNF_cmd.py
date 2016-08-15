@@ -18,7 +18,7 @@
 #               -p <Preprocessing: Brightness Normalization of Hyperspectral data [Optional]> -v <Accumulated explained variance> 
 #
 # -- method [-m]: Method options: 1 (default) regular MNF transformation
-#                                 2  Reduce the second component noise and return the inverse transform
+#                                 2  Reduce the second component noise and return the inverse transform.
 #                                    Use Savitzky Golay methods
 #
 # --preprop [-p]: Brightness Normalization presented in Feilhauer et al., 2010
@@ -49,7 +49,10 @@
 # Feilhauer, H., Asner, G. P., Martin, R. E., Schmidtlein, S. (2010): Brightness-normalized Partial Least Squares
 # Regression for hyperspectral data. Journal of Quantitative Spectroscopy and Radiative Transfer 111(12-13),
 # pp. 1947–1957. 10.1016/j.jqsrt.2010.03.007
-
+#
+# C-I Change and Q Du. 1999. Interference and Noise-Adjusted Principal Components Analysis. 
+# IEEE TGRS, Vol 36, No 5.
+#
 ########################################################################################################################
 
 import os, glob, argparse
