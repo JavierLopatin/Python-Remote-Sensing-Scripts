@@ -2,6 +2,7 @@
 
 import os, glob, argparse
 import numpy as np
+from sklearn.decomposition import PCA
 try:
    import rasterio
 except ImportError:
@@ -28,8 +29,13 @@ def MNF(img, n_components):
 
 def explained_variance(img):
     from sklearn.decomposition import PCA
-    pca = PCA(n_components = img.shape[2])
-    pca.fit(img[:,:,0], img.shape[2])
+    w = ns.Whiten()
+    wdata = w.apply(img)
+    numBands = r.count
+    h, w, numBands = wdata.shape
+    X = np.reshape(wdata, (w*h, numBands))
+    pca = PCA()
+    mnf = pca.fit_transform(X)
     return print(pca.explained_variance_ratio_.cumsum()) 
 
 def reshape_as_image(arr):
@@ -71,49 +77,47 @@ def saveMNF(img, inputRaster):
 
 ###############################
 
-if __name__ == "__main__":
+#if __name__ == "__main__":
             
-    # Define number of components for the MNF
-    n_components = args['method']
-    # list of .tif files in the Input File Path     
-    imageList = glob.glob('*.'+args['format'])
-    # Create folders to store results if thay do no exist
-    if not os.path.exists("MNF"):
-        os.makedirs("MNF")
+# Define number of components for the MNF
+n_components = args['method']
+
+# list of .tif files in the Input File Path     
+#imageList = glob.glob('*.'+args['format'])
+
+# Create folders to store results if thay do no exist
+if not os.path.exists("MNF"):
+    os.makedirs("MNF")
     
-    for i in range(len(imageList)):
-        # Load raster/convert to ndarray format
-        name = os.path.basename(imageList[i])
-        r = rasterio.open(imageList[i])            
-        r2 = r.read()
-        # Apply Brightness Normalization if the option -p is added
-        if args["preprop"]==True:
-             bn = np.apply_along_axis(BrigthnessNormalization, 0, r2)
-             img = reshape_as_image(bn) 
-        img = reshape_as_image(r2)
-        # Apply MNF -m 1
-        print("Creating MNF components of " + name)
-        mnf = MNF(img, n_components)
-        saveMNF(mnf, r)
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+### one image
+inImage = "1907_potVal_sp_6_7.dat"
+outImage = "1907_potVal_sp_6_7.tif"
+
+# Load raster/convert to ndarray format
+name = os.path.basename(inImage)
+r = rasterio.open(inImage)            
+r2 = r.read()
+# Apply Brightness Normalization if the option -p is added
+if args["preprop"]==True:
+    bn = np.apply_along_axis(BrigthnessNormalization, 0, r2)
+    r2 = reshape_as_image(bn) 
+img = reshape_as_image(r2)
+# Apply MNF -m 1
+print("Creating MNF components of " + name)
+# Apply MNF namualy acording to pysptools
+w = ns.Whiten()
+wdata = w.apply(img)
+numBands = r.count
+h, w, numBands = wdata.shape
+X = np.reshape(wdata, (w*h, numBands))
+pca = PCA()
+mnf = pca.fit_transform(X)
+mnf = np.reshape(mnf, (h, w, numBands))
+
+
+####
+pca.explained_variance_ratio_
+
     
     
     
@@ -130,3 +134,22 @@ if __name__ == "__main__":
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+=======
+>>>>>>> ba9130e866e4585d8ff0c942a4ea9959de77704a

@@ -55,6 +55,7 @@
 #
 ########################################################################################################################
 
+from __future__ import division
 import os, glob, argparse
 import numpy as np
 try:
@@ -97,8 +98,13 @@ def MNF_reduce_component_2_noise_and_invert(img, n_components):
     
 def explained_variance(img):
     from sklearn.decomposition import PCA
-    pca = PCA(n_components = img.shape[2])
-    pca.fit(img[:,:,0], img.shape[2])
+    w = ns.Whiten()
+    wdata = w.apply(img)
+    numBands = r.count
+    h, w, numBands = wdata.shape
+    X = np.reshape(wdata, (w*h, numBands))
+    pca = PCA()
+    mnf = pca.fit_transform(X)
     return print(pca.explained_variance_ratio_.cumsum()) 
 
 def reshape_as_image(arr):
@@ -170,7 +176,7 @@ if __name__ == "__main__":
             # Apply Brightness Normalization if the option -p is added
             if args["preprop"]==True:
                      bn = np.apply_along_axis(BrigthnessNormalization, 0, r2)
-                     img = reshape_as_image(bn) 
+                     r2 = reshape_as_image(bn) 
             img = reshape_as_image(r2)
             print("Accumulated explained variances of " + name + "are:")
             explained_variance(img)
@@ -184,7 +190,7 @@ if __name__ == "__main__":
                 # Apply Brightness Normalization if the option -p is added
                 if args["preprop"]==True:
                      bn = np.apply_along_axis(BrigthnessNormalization, 0, r2)
-                     img = reshape_as_image(bn) 
+                     r2 = reshape_as_image(bn) 
                 img = reshape_as_image(r2)
                 # Apply MNF -m 1
                 print("Creating MNF components of " + name)
@@ -200,7 +206,7 @@ if __name__ == "__main__":
                 # Apply Brightness Normalization if the option -p is added
                 if args["preprop"]==True:
                      bn = np.apply_along_axis(BrigthnessNormalization, 0, r2)
-                     img = reshape_as_image(bn) 
+                     r2 = reshape_as_image(bn) 
                 img = reshape_as_image(r2)
                 # Apply MNF -m 2
                 print("Creating MNF components of " + name)

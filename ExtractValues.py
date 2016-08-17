@@ -29,8 +29,11 @@
 #
 # Usage:
 #
-# python ExtractValues.py <Imput raster> <Imput shapefile> <Imput function> 
+# python ExtractValues.py <Imput raster> <Imput shapefile> <Imput function> <Shapefile ID>
 #
+#  Example: python ExtractValues.py -r raster.tif -s shape.shp -i ID
+#           python ExtractValues.py -r raster.tif -s shape.shp -f median -i ID
+#                
 ######################################################################################
 
 import os, argparse
