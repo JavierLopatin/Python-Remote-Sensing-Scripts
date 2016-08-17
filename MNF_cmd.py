@@ -18,12 +18,16 @@
 #               -p <Preprocessing: Brightness Normalization of Hyperspectral data [Optional]> -s <Apply Savitzky Golay filtering [Optional]>
 #               -v <Accumulated explained variance> 
 #
+# --format [-f]: Input raster formats (default tif)
+# 
 # -- method [-m]: Method options: 1 (default) regular MNF transformation.
 #                                 2  MNF inverse transformation.
 #
 # --preprop [-p]: Brightness Normalization presented in Feilhauer et al., 2010
 #
-# -- SavitzkyGolay[-s]: Apply Savitzky Golay filtering
+# --SavitzkyGolay [-s]: Apply Savitzky Golay filtering
+#
+# --variance [-v]: Get the accumulative explained variance of MNF components
 #
 # examples:   
 #             # Get the accumulated explained variance
