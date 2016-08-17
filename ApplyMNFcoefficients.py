@@ -21,12 +21,6 @@ def BrigthnessNormalization(img):
     r = img / np.sqrt( np.sum((img**2), 0) )
     return r
 
-def MNF(img, n_components):
-    mnf = ns.MNF()
-    mnf.apply(img)
-    r = mnf.get_components(n_components)
-    return r
-
 def explained_variance(img):
     from sklearn.decomposition import PCA
     w = ns.Whiten()
@@ -36,7 +30,7 @@ def explained_variance(img):
     X = np.reshape(wdata, (w*h, numBands))
     pca = PCA()
     mnf = pca.fit_transform(X)
-    return print(pca.explained_variance_ratio_.cumsum()) 
+    return print(np.cumsum(np.round(pca.explained_variance_ratio_, decimals=4)*100)) 
 
 def reshape_as_image(arr):
     """Returns the source array reshaped into the order
@@ -70,86 +64,168 @@ def saveMNF(img, inputRaster):
     output = "MNF/" + name[:-4] + "_MNF.tif"
     new_dataset = rasterio.open(output, 'w', driver='GTiff',
                height=inputRaster.shape[0], width=inputRaster.shape[1],
-               count=int(n_components), dtype=inputRaster.dtypes[0],
+               count=int(n_components), dtype=str(img.dtype),
                crs=inputRaster.crs, transform=inputRaster.transform)
     new_dataset.write(img2)
     new_dataset.close()
 
 ###############################
 
-#if __name__ == "__main__":
+if __name__ == "__main__":
+
+ # create the arguments for the algorithm
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-i','--inputImage', help='Input raster from which copy the MNF coefficients', type=str)
+    parser.add_argument('-f','--format', help='Input raster format [default = tif]', type=str, default="tif")
+    parser.add_argument('-c','--components', help='Number of components', type=int, required=True)
+    parser.add_argument('-m','--method', help='MNF method to apply: 1 (default) = regular MNF transformation; 2 = MNF invers transformation', type=int, default=1)
+    parser.add_argument('-p','--preprop', help='Preprocessing: Brightness Normalization of Hyperspectral data [Optional]',  action="store_true", default=False)
+    parser.add_argument('-s','--SavitzkyGolay', help='Apply Savitzky Golay filtering [Optional]',  action="store_true", default=False)
+    parser.add_argument('-v','--variance', help='Accumulated explained variance', action="store_true", default=False)   
+    parser.add_argument('--version', action='version', version='%(prog)s 1.0')
+    
+    args = vars(parser.parse_args())
+               
+    # Define number of components for the MNF
+    n_components = args['components'] 
+    # Input image
+    inImage = args['inputImage']
+    # list of .tif files in the Input File Path     
+    imageList = glob.glob('*.'+args['format'])
+    imageList.remove(inImage) # remove the Input image
+    
+    # Create folders to store results if thay do no exist
+    if not os.path.exists("MNF"):
+        os.makedirs("MNF")
+        
+    if args['variance']==True:
+        # Show the accumulated explained variance
+        name = os.path.basename(inImage)
+        r = rasterio.open(inImage)            
+        r2 = r.read()
+        # Apply Brightness Normalization if the option -p is added
+        if args["preprop"]==True:
+            bn = np.apply_along_axis(BrigthnessNormalization, 0, r2)
+            r2 = reshape_as_image(bn) 
+        img = reshape_as_image(r2)
+        print("Accumulated explained variances of " + name + "are:")
+        explained_variance(img)
+    
+    else:
+        if args['method']==1:
+            # Load raster/convert to ndarray format
+            name = os.path.basename(inImage)
+            r = rasterio.open(inImage)            
+            r2 = r.read()
+            # Apply Brightness Normalization if the option -p is added
+            if args["preprop"]==True:
+                r2 = np.apply_along_axis(BrigthnessNormalization, 0, r2)
+            img = reshape_as_image(r2)
+            # Apply MNF -m 1
+            print("Creating MNF components of " + name)
+            # Apply MNF namualy acording to pysptools
+            w = ns.Whiten()
+            wdata = w.apply(img)
+            numBands = r.count
+            h, w, numBands = wdata.shape
+            X = np.reshape(wdata, (w*h, numBands))
+            pca = PCA()
+            mnf = pca.fit_transform(X)
+            mnf = np.reshape(mnf, (h, w, numBands))
+            if args["SavitzkyGolay"]==True:
+                dn = ns.SavitzkyGolay()
+                mnf[:,:,1:2] = dn.denoise_bands(mnf[:,:,1:2], 15, 2)
+            mnf = mnf[:,:,:n_components]
+            saveMNF(mnf, r)
             
-# Define number of components for the MNF
-n_components = args['method']
-
-# list of .tif files in the Input File Path     
-#imageList = glob.glob('*.'+args['format'])
-
-# Create folders to store results if thay do no exist
-if not os.path.exists("MNF"):
-    os.makedirs("MNF")
-    
-### one image
-inImage = "1907_potVal_sp_6_7.dat"
-outImage = "1907_potVal_sp_6_7.tif"
-
-# Load raster/convert to ndarray format
-name = os.path.basename(inImage)
-r = rasterio.open(inImage)            
-r2 = r.read()
-# Apply Brightness Normalization if the option -p is added
-if args["preprop"]==True:
-    bn = np.apply_along_axis(BrigthnessNormalization, 0, r2)
-    r2 = reshape_as_image(bn) 
-img = reshape_as_image(r2)
-# Apply MNF -m 1
-print("Creating MNF components of " + name)
-# Apply MNF namualy acording to pysptools
-w = ns.Whiten()
-wdata = w.apply(img)
-numBands = r.count
-h, w, numBands = wdata.shape
-X = np.reshape(wdata, (w*h, numBands))
-pca = PCA()
-mnf = pca.fit_transform(X)
-mnf = np.reshape(mnf, (h, w, numBands))
-
-
-####
-pca.explained_variance_ratio_
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-=======
->>>>>>> ba9130e866e4585d8ff0c942a4ea9959de77704a
+            # Apply MNF coefficients to the other images
+            for i in range(len(imageList)):
+                name = os.path.basename(imageList[i])
+                r = rasterio.open(imageList[i])            
+                r2 = r.read()
+                # Apply Brightness Normalization if the option -p is added
+                if args["preprop"]==True:
+                    r2 = np.apply_along_axis(BrigthnessNormalization, 0, r2)
+                img = reshape_as_image(r2)
+                # Apply MNF -m 1
+                print("Creating MNF components of " + name)
+                # Apply MNF namualy acording to pysptools
+                w = ns.Whiten()
+                wdata = w.apply(img)
+                numBands = r.count
+                h, w, numBands = wdata.shape
+                Y = np.reshape(wdata, (w*h, numBands))
+                mnf = pca.fit_transform(Y)
+                mnf = np.reshape(mnf, (h, w, numBands))
+                if args["SavitzkyGolay"]==True:
+                    dn = ns.SavitzkyGolay()
+                    mnf[:,:,1:2] = dn.denoise_bands(mnf[:,:,1:2], 15, 2)
+                mnf = mnf[:,:,:n_components]
+                saveMNF(mnf, r)
+                
+        elif args['method']==2:
+            # Load raster/convert to ndarray format
+            name = os.path.basename(inImage)
+            r = rasterio.open(inImage)            
+            r2 = r.read()
+            # Apply Brightness Normalization if the option -p is added
+            if args["preprop"]==True:
+                r2 = np.apply_along_axis(BrigthnessNormalization, 0, r2)
+            img = reshape_as_image(r2)
+            # Apply MNF -m 1
+            print("Creating MNF components of " + name)
+            # Apply MNF namualy acording to pysptools
+            w = ns.Whiten()
+            wdata = w.apply(img)
+            numBands = r.count
+            h, w, numBands = wdata.shape
+            X = np.reshape(wdata, (w*h, numBands))
+            pca = PCA()
+            mnf = pca.fit_transform(X)
+            mnf = np.reshape(mnf, (h, w, numBands))
+            if args["SavitzkyGolay"]==True:
+                dn = ns.SavitzkyGolay()
+                mnf[:,:,1:2] = dn.denoise_bands(mnf[:,:,1:2], 15, 2)
+            a = pca.inverse_transform(mnf)
+            mnf = a[:,:,1:n_components+1]
+            saveMNF(mnf, r)
+            
+            # Apply MNF coefficients to the other images
+            for i in range(len(imageList)):
+                name = os.path.basename(imageList[i])
+                r = rasterio.open(imageList[i])            
+                r2 = r.read()
+                # Apply Brightness Normalization if the option -p is added
+                if args["preprop"]==True:
+                    r2 = np.apply_along_axis(BrigthnessNormalization, 0, r2)
+                img = reshape_as_image(r2)
+                # Apply MNF -m 1
+                print("Creating MNF components of " + name)
+                # Apply MNF namualy acording to pysptools
+                w = ns.Whiten()
+                wdata = w.apply(img)
+                numBands = r.count
+                h, w, numBands = wdata.shape
+                Y = np.reshape(wdata, (w*h, numBands))
+                mnf = pca.fit_transform(Y)
+                mnf = np.reshape(mnf, (h, w, numBands))
+                if args["SavitzkyGolay"]==True:
+                    dn = ns.SavitzkyGolay()
+                    mnf[:,:,1:2] = dn.denoise_bands(mnf[:,:,1:2], 15, 2)
+                a = pca.inverse_transform(mnf)
+                mnf = a[:,:,1:n_components+1]
+                saveMNF(mnf, r)
+                
+        else:
+            print('ERROR!. Command should have the form:')
+            print('python MNF.py -f <Imput raster formar> -c <Number of components> -m <Method option>[optional] -v <Accumulated explained variance>[optional]')
+            print("")
+            print("Method options: 1 (default) regular MNF transformation")
+            print("                2  inverse transform")
+            print("")
+            print("-p or --preprop: Apply Broghtness Normalization of hyperspectral data")
+            print("")
+            print("-s or --Savitzky Golay: Use Savitzky Golay methods")
+            print("")
+            print("example: python MNF_cmd.py -f tif -c 10")
