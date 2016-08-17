@@ -103,9 +103,9 @@ if __name__ == "__main__":
 
     # create the arguments for the algorithm
     parser = argparse.ArgumentParser()
-    parser.add_argument('-r','--raster', help='Imput raster', type=str)   
-    parser.add_argument('-s', '--shapefile', help='Imput shapefile', type=str)
-    parser.add_argument('-f', '--function', help='Imput function to extract [default = "mean"]', type=str, default="mean")
+    parser.add_argument('-r','--raster', help='Input raster', type=str)   
+    parser.add_argument('-s', '--shapefile', help='Input shapefile', type=str)
+    parser.add_argument('-f', '--function', help='Input function to extract [default = "mean"]', type=str, default="mean")
     parser.add_argument('-i', '--id', help='Shapefile ID to store in the CSV', type=str)
     parser.add_argument('--version', action='version', version='%(prog)s 1.0')
     args = vars(parser.parse_args())
