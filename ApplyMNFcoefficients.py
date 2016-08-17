@@ -5,6 +5,8 @@
 # ApplyMNFcoefficients.py
 # A python script to perform MNF transformation to one image and then apply the coefficients to other images.
 #
+# WARNING!: this assume that all images are in the same format
+#
 # Info: The script perform MNF transformation to all raster images stored in a folder. 
 #
 # Author: Javier Lopatin
@@ -18,11 +20,16 @@
 #               -p <Preprocessing: Brightness Normalization of Hyperspectral data [Optional]> -s <Apply Savitzky Golay filtering [Optional]>
 #               -v <Accumulated explained variance> 
 #
-# -- method [-m]: Method options: 1 (default) regular MNF transformation
-#                                 2  Reduce the second component noise and return the inverse transform.
-#                                    Use Savitzky Golay methods
+# --inputImage [-i]: input raster from which copy the MNF coefficients
+# 
+# -- method [-m]: Method options: 1 (default) regular MNF transformation.
+#                                 2  MNF inverse transformation.
 #
 # --preprop [-p]: Brightness Normalization presented in Feilhauer et al., 2010
+#
+# --SavitzkyGolay [-s]: Apply Savitzky Golay filtering
+#
+# --variance [-v]: Get the accumulative explained variance of MNF components
 #
 # examples:   
 #             # Get the accumulated explained variance
@@ -135,7 +142,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-i','--inputImage', help='Input raster from which copy the MNF coefficients', type=str)
-    parser.add_argument('-f','--format', help='Input raster format [default = tif]', type=str, default="tif")
     parser.add_argument('-c','--components', help='Number of components', type=int, required=True)
     parser.add_argument('-m','--method', help='MNF method to apply: 1 (default) = regular MNF transformation; 2 = MNF invers transformation', type=int, default=1)
     parser.add_argument('-p','--preprop', help='Preprocessing: Brightness Normalization of Hyperspectral data [Optional]',  action="store_true", default=False)
@@ -150,7 +156,7 @@ if __name__ == "__main__":
     # Input image
     inImage = args['inputImage']
     # list of .tif files in the Input File Path     
-    imageList = glob.glob('*.'+args['format'])
+    imageList = glob.glob('*.'+inImage[-3:])
     imageList.remove(inImage) # remove the Input image
     
     # Create folders to store results if thay do no exist
