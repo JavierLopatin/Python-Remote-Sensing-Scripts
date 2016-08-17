@@ -1,3 +1,61 @@
+#! /usr/bin/env python
+
+########################################################################################################################
+#
+# ApplyMNFcoefficients.py
+# A python script to perform MNF transformation to one image and then apply the coefficients to other images.
+#
+# Info: The script perform MNF transformation to all raster images stored in a folder. 
+#
+# Author: Javier Lopatin
+# Email: javierlopatin@gmail.com
+# Date: 09/08/2016
+# Version: 1.0
+#
+# Usage:
+#
+# python MNF.py -i <Input raster from which copy the MNF coefficients> -c <Number of components> -m <Method option> 
+#               -p <Preprocessing: Brightness Normalization of Hyperspectral data [Optional]> -s <Apply Savitzky Golay filtering [Optional]>
+#               -v <Accumulated explained variance> 
+#
+# -- method [-m]: Method options: 1 (default) regular MNF transformation
+#                                 2  Reduce the second component noise and return the inverse transform.
+#                                    Use Savitzky Golay methods
+#
+# --preprop [-p]: Brightness Normalization presented in Feilhauer et al., 2010
+#
+# examples:   
+#             # Get the accumulated explained variance
+#             python ApplyMNFcoefficients.py -i image.tif -c 1 -v
+#
+#             # with Brightness Normalization
+#             python ApplyMNFcoefficients.py -i image.tif-c 1 -v -p
+#
+#             # Get the regular MNF transformation
+#             python ApplyMNFcoefficients.py -i image.tif -c 10 
+#             python ApplyMNFcoefficients.py -i image.tif -c 10 -s # with Savitzky Golay
+#
+#             # with Brightness Normalization
+#             python ApplyMNFcoefficients.py -i image.tif -c 10 -p
+#
+#             # Get the reduced nose MNF with inverse transformation
+#             python ApplyMNFcoefficients.py -i image.tif-c 10 -m 2
+#             python ApplyMNFcoefficients.py -i image.tif-c 10 -m 2 -s # with Savitzky Golay
+#
+#             # with Brightness Normalization
+#             python ApplyMNFcoefficients.py -i image.tif-c 10 -m 2 -p
+#
+#
+# Bibliography:
+#
+# Feilhauer, H., Asner, G. P., Martin, R. E., Schmidtlein, S. (2010): Brightness-normalized Partial Least Squares
+# Regression for hyperspectral data. Journal of Quantitative Spectroscopy and Radiative Transfer 111(12-13),
+# pp. 1947–1957. 10.1016/j.jqsrt.2010.03.007
+#
+# C-I Change and Q Du. 1999. Interference and Noise-Adjusted Principal Components Analysis. 
+# IEEE TGRS, Vol 36, No 5.
+#
+########################################################################################################################
 
 
 import os, glob, argparse
