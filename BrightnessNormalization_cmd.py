@@ -29,6 +29,7 @@
 #
 ########################################################################################################################
 
+from __future__ import division
 import os, glob, argparse
 import numpy as np
 try:
