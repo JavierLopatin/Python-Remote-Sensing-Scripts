@@ -15,13 +15,15 @@
 # Usage:
 #
 # python MNF.py -f <Imput raster format [default = tif]> -c <Number of components> -m <Method option> 
-#               -p <Preprocessing: Brightness Normalization of Hyperspectral data [Optional]> -v <Accumulated explained variance> 
+#               -p <Preprocessing: Brightness Normalization of Hyperspectral data [Optional]> -s <Apply Savitzky Golay filtering [Optional]>
+#               -v <Accumulated explained variance> 
 #
-# -- method [-m]: Method options: 1 (default) regular MNF transformation
-#                                 2  Reduce the second component noise and return the inverse transform.
-#                                    Use Savitzky Golay methods
+# -- method [-m]: Method options: 1 (default) regular MNF transformation.
+#                                 2  MNF inverse transformation.
 #
 # --preprop [-p]: Brightness Normalization presented in Feilhauer et al., 2010
+#
+# -- SavitzkyGolay[-s]: Apply Savitzky Golay filtering
 #
 # examples:   
 #             # Get the accumulated explained variance
