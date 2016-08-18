@@ -14,9 +14,12 @@
 #
 # Usage:
 #
-# python MNF.py -f <Imput raster format [default = tif]> -c <Number of components> -m <Method option> 
-#               -p <Preprocessing: Brightness Normalization of Hyperspectral data [Optional]> -s <Apply Savitzky Golay filtering [Optional]>
-#               -v <Accumulated explained variance> 
+# python MNF.py -f <Imput raster format [default = tif]> 
+#               -c <Number of components> 
+#               -m <Method option [default = 1]> 
+#               -p <Preprocessing: Brightness Normalization of Hyperspectral data [Optional]> 
+#               -s <Apply Savitzky Golay filtering [Optional]>
+#               -v <Accumulated explained variance [optional]> 
 #
 # --format [-f]: Input raster formats (default tif)
 # 
