@@ -162,14 +162,36 @@ if __name__ == "__main__":
     ID     = args['id']
     func   = args['function']
     
+    # Check that the input parameter has been specified.
+    if args['raster'] == None:
+       # Print an error message if not and exit.
+       print("Error: No input image file provided.")
+       sys.exit()
+
+    if args['shapefile'] == None:
+       # Print an error message if not and exit.
+       print("Error: No input shapefile file provided.")
+       sys.exit()
+
+    if args['id'] == None:
+       # Print an error message if not and exit.
+       print("Error: No input id provided.")
+       sys.exit()
+    
+    print("Extracting values of "+name)
+    
     if args['points']==True:
+        if args['function'] == None:
+           # Print an error message if not and exit.
+           print("Error: No extracting function provided.")
+           sys.exit()
+        
         df = ExtractPointValues(raster, shp, ID)
     else:
         df = ExtractValues(raster, shp, func, ID)
 
     # Save to CSV file
     name = os.path.basename(raster)
-    print("Extractin values of "+name)
     df.to_csv(name[:-4] + ".csv", index=False, heather=True, na_rep='NA') 
 
 
