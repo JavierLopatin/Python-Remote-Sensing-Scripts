@@ -16,9 +16,12 @@
 #
 # Usage:
 #
-# python MNF.py -i <Input raster from which copy the MNF coefficients> -c <Number of components> -m <Method option> 
-#               -p <Preprocessing: Brightness Normalization of Hyperspectral data [Optional]> -s <Apply Savitzky Golay filtering [Optional]>
-#               -v <Accumulated explained variance> 
+# python MNF.py -i <Input raster from which copy the MNF coefficients> 
+#               -c <Number of components> 
+#               -m <Method option [default = 1]> 
+#               -p <Preprocessing: Brightness Normalization of Hyperspectral data [Optional]> 
+#               -s <Apply Savitzky Golay filtering [Optional]>
+#               -v <Accumulated explained variance [Optional]> 
 #
 # --inputImage [-i]: input raster from which copy the MNF coefficients
 # 
@@ -141,12 +144,20 @@ if __name__ == "__main__":
  # create the arguments for the algorithm
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-i','--inputImage', help='Input raster from which copy the MNF coefficients', type=str)
-    parser.add_argument('-c','--components', help='Number of components', type=int, required=True)
-    parser.add_argument('-m','--method', help='MNF method to apply: 1 (default) = regular MNF transformation; 2 = MNF invers transformation', type=int, default=1)
-    parser.add_argument('-p','--preprop', help='Preprocessing: Brightness Normalization of Hyperspectral data [Optional]',  action="store_true", default=False)
-    parser.add_argument('-s','--SavitzkyGolay', help='Apply Savitzky Golay filtering [Optional]',  action="store_true", default=False)
-    parser.add_argument('-v','--variance', help='Accumulated explained variance', action="store_true", default=False)   
+    parser.add_argument('-i','--inputImage', 
+      help='Input raster from which copy the MNF coefficients', type=str)
+    parser.add_argument('-c','--components', 
+      help='Number of components', type=int, required=True)
+    parser.add_argument('-m','--method', 
+      help='MNF method to apply: 1 (default) = regular MNF transformation; 2 = MNF invers transformation', 
+      type=int, default=1)
+    parser.add_argument('-p','--preprop', 
+      help='Preprocessing: Brightness Normalization of Hyperspectral data [Optional]',  
+      action="store_true", default=False)
+    parser.add_argument('-s','--SavitzkyGolay', 
+      help='Apply Savitzky Golay filtering [Optional]',  action="store_true", default=False)
+    parser.add_argument('-v','--variance', 
+      help='Accumulated explained variance', action="store_true", default=False)   
     parser.add_argument('--version', action='version', version='%(prog)s 1.0')
     
     args = vars(parser.parse_args())
