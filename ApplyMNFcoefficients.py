@@ -126,7 +126,10 @@ def reshape_as_raster(arr):
 def saveMNF(img, inputRaster):
     # Save TIF image to a nre directory of name MNF
     img2 = reshape_as_raster(img)
-    output = "MNF/" + name[:-4] + "_MNF.tif"
+    if args["preprop"]==True:
+    	output = "BN_MNF/" + name[:-4] + "_BN_MNF.tif"
+    else:
+	output = "MNF/" + name[:-4] + "_MNF.tif"
     new_dataset = rasterio.open(output, 'w', driver='GTiff',
                height=inputRaster.shape[0], width=inputRaster.shape[1],
                count=int(n_components), dtype=str(img.dtype),
@@ -160,8 +163,12 @@ if __name__ == "__main__":
     imageList.remove(inImage) # remove the Input image
     
     # Create folders to store results if thay do no exist
-    if not os.path.exists("MNF"):
-        os.makedirs("MNF")
+    if args["preprop"]==True:
+    	if not os.path.exists("BN_MNF"):
+        	os.makedirs("BN_MNF")
+    else:
+    	if not os.path.exists("MNF"):
+        	os.makedirs("MNF")
         
     if args['variance']==True:
         # Show the accumulated explained variance
