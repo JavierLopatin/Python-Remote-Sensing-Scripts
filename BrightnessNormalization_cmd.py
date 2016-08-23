@@ -49,7 +49,7 @@ def saveImage(img, inputRaster):
     output = "BN/" + name[:-4] + "_BN.tif"
     new_dataset = rasterio.open(output, 'w', driver='GTiff',
                height=inputRaster.shape[0], width=inputRaster.shape[1],
-               count=int(img.shape[0]), dtype=inputRaster.dtypes[0],
+               count=int(img.shape[0]), dtype=str(img.dtype),
                crs=inputRaster.crs, transform=inputRaster.transform)
     new_dataset.write(img)
     new_dataset.close()
