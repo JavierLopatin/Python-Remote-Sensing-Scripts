@@ -14,9 +14,12 @@
 #
 # Usage:
 #
-# python MNF.py -f <Imput raster format [default = tif]> -c <Number of components> -m <Method option> 
-#               -p <Preprocessing: Brightness Normalization of Hyperspectral data [Optional]> -s <Apply Savitzky Golay filtering [Optional]>
-#               -v <Accumulated explained variance> 
+# python MNF.py -f <Imput raster format [default = tif]> 
+#               -c <Number of components> 
+#               -m <Method option [default = 1]> 
+#               -p <Preprocessing: Brightness Normalization of Hyperspectral data [Optional]> 
+#               -s <Apply Savitzky Golay filtering [Optional]>
+#               -v <Accumulated explained variance [optional]> 
 #
 # --format [-f]: Input raster formats (default tif)
 # 
@@ -144,7 +147,10 @@ def reshape_as_raster(arr):
 def saveMNF(img, inputRaster):
     # Save TIF image to a nre directory of name MNF
     img2 = reshape_as_raster(img)
-    output = "MNF/" + name[:-4] + "_MNF.tif"
+    if args["preprop"]==True:
+    	output = "BN_MNF/" + name[:-4] + "_BN_MNF.tif"
+    else:
+	output = "MNF/" + name[:-4] + "_MNF.tif"
     new_dataset = rasterio.open(output, 'w', driver='GTiff',
                height=inputRaster.shape[0], width=inputRaster.shape[1],
                count=int(n_components), dtype=str(img.dtype),
@@ -158,12 +164,20 @@ if __name__ == "__main__":
     # create the arguments for the algorithm
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-f','--format', help='Input raster format [default = tif]', type=str, default="tif")
-    parser.add_argument('-c','--components', help='Number of components', type=int, required=True)
-    parser.add_argument('-m','--method', help='MNF method to apply: 1 (default) = regular MNF transformation; 2 = MNF invers transformation', type=int, default=1)
-    parser.add_argument('-p','--preprop', help='Preprocessing: Brightness Normalization of Hyperspectral data [Optional]',  action="store_true", default=False)
-    parser.add_argument('-s','--SavitzkyGolay', help='Apply Savitzky Golay filtering [Optional]',  action="store_true", default=False)
-    parser.add_argument('-v','--variance', help='Accumulated explained variance', action="store_true", default=False)
+    parser.add_argument('-f','--format', 
+      help='Input raster format [default = tif].', type=str, default="tif")
+    parser.add_argument('-c','--components', 
+      help='Number of components.', type=int, required=True)
+    parser.add_argument('-m','--method', 
+      help='MNF method to apply: 1 (default) = regular MNF transformation; 2 = MNF invers transformation.', 
+      type=int, default=1)
+    parser.add_argument('-p','--preprop', 
+      help='Preprocessing: Brightness Normalization of Hyperspectral data [Optional].', 
+      action="store_true", default=False)
+    parser.add_argument('-s','--SavitzkyGolay', 
+      help='Apply Savitzky Golay filtering [Optional].',  action="store_true", default=False)
+    parser.add_argument('-v','--variance', 
+      help='Accumulated explained variance.', action="store_true", default=False)
     
     parser.add_argument('--version', action='version', version='%(prog)s 1.0')
     args = vars(parser.parse_args())
