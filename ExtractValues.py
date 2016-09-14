@@ -73,7 +73,7 @@ def ExtractValues(raster, shp, func, ID):
     bands = array.shape[0]
     bandNames = []
     for i in range(bands):
-        a = name[:-4] + "_B" + str(i+1)
+        a = "B" + str(i+1)
         bandNames.append(a)
     
     # Shapefile management
@@ -114,7 +114,7 @@ def ExtractPointValues(raster, shp, ID):
     bands = array.shape[0]
     bandNames = []
     for i in range(bands):
-        a = name[:-4] + "_B" + str(i+1)
+        a = "B" + str(i+1)
         bandNames.append(a)
     
     # Shapefile management
