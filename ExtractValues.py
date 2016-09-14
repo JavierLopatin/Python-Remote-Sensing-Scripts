@@ -39,7 +39,7 @@
 #                
 ########################################################################################################
 
-import os, argparse
+import os, argparse, sys
 import pandas as pd
 import numpy as np
 
@@ -178,12 +178,10 @@ if __name__ == "__main__":
        print("Error: No input id provided.")
        sys.exit()
     
-    print("Extracting values of "+name)
-    
     if args['points']==True:
         if args['function'] == None:
            # Print an error message if not and exit.
-           print("Error: No extracting function provided.")
+           print("Error: No extracting function provided.")           
            sys.exit()
         
         df = ExtractPointValues(raster, shp, ID)
@@ -191,7 +189,7 @@ if __name__ == "__main__":
         df = ExtractValues(raster, shp, func, ID)
 
     # Save to CSV file
-    name = os.path.basename(raster)
+    name = os.path.basename(shp)
     df.to_csv(name[:-4] + ".csv", index=False, heather=True, na_rep='NA') 
 
 
