@@ -66,7 +66,6 @@ def ExtractValues(raster, shp, func, ID):
     Several statistics are allowed.
     """
     # Raster management
-    name = os.path.basename(raster)
     r = rasterio.open(raster)
     affine = r.affine 
     array = r.read()
@@ -107,7 +106,6 @@ def ExtractPointValues(raster, shp, ID):
     """ Extract raster values by a shapefile point mask.
     """
     # Raster management
-    name = os.path.basename(raster)
     r = rasterio.open(raster)
     affine = r.affine 
     array = r.read()
