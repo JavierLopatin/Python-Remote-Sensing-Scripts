@@ -39,7 +39,7 @@
 #                
 ########################################################################################################
 
-import os, argparse
+import os, argparse, sys
 import pandas as pd
 import numpy as np
 
@@ -66,14 +66,13 @@ def ExtractValues(raster, shp, func, ID):
     Several statistics are allowed.
     """
     # Raster management
-    name = os.path.basename(raster)
     r = rasterio.open(raster)
     affine = r.affine 
     array = r.read()
     bands = array.shape[0]
     bandNames = []
     for i in range(bands):
-        a = name[:-4] + "_B" + str(i+1)
+        a = "B" + str(i+1)
         bandNames.append(a)
     
     # Shapefile management
@@ -107,14 +106,13 @@ def ExtractPointValues(raster, shp, ID):
     """ Extract raster values by a shapefile point mask.
     """
     # Raster management
-    name = os.path.basename(raster)
     r = rasterio.open(raster)
     affine = r.affine 
     array = r.read()
     bands = array.shape[0]
     bandNames = []
     for i in range(bands):
-        a = name[:-4] + "_B" + str(i+1)
+        a = "B" + str(i+1)
         bandNames.append(a)
     
     # Shapefile management
@@ -178,12 +176,10 @@ if __name__ == "__main__":
        print("Error: No input id provided.")
        sys.exit()
     
-    print("Extracting values of "+name)
-    
     if args['points']==True:
         if args['function'] == None:
            # Print an error message if not and exit.
-           print("Error: No extracting function provided.")
+           print("Error: No extracting function provided.")           
            sys.exit()
         
         df = ExtractPointValues(raster, shp, ID)
@@ -191,7 +187,7 @@ if __name__ == "__main__":
         df = ExtractValues(raster, shp, func, ID)
 
     # Save to CSV file
-    name = os.path.basename(raster)
+    name = os.path.basename(shp)
     df.to_csv(name[:-4] + ".csv", index=False, heather=True, na_rep='NA') 
 
 
