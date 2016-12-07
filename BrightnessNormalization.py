@@ -57,26 +57,22 @@ def saveImage(img, inputRaster):
 ### Run process
         
 if __name__ == "__main__":
+   
+   # create the arguments for the algorithm
+   parser = argparse.ArgumentParser()
 
-# create the arguments for the algorithm
-    parser = argparse.ArgumentParser()
+   parser.add_argument('-i','--input', help='Imput raster', type=str, required=True)   
+   parser.add_argument('--version', action='version', version='%(prog)s 1.0')
+   args = vars(parser.parse_args())
 
-    parser.add_argument('-f','--format', help='Imput raster format, e.g: tif', type=str, default="tif")   
-    parser.add_argument('--version', action='version', version='%(prog)s 1.0')
-    args = vars(parser.parse_args())
-
-    # list of .tif files in the Input File Path     
-    imageList = glob.glob('*.'+args['format'])
-    # Create folders to store results if thay do no exist
-    if not os.path.exists("BN"):
-        os.makedirs("BN")
+   # input raster
+   image = args["input"]
     
-    for i in range(len(imageList)):
-        name = os.path.basename(imageList[i])
-        r = rasterio.open(imageList[i])            
-        img = r.read()
-        print("Normalizing "+name)
-        bn = np.apply_along_axis(BrigthnessNormalization, 0, img)
-        saveImage(bn, r)
+   name = os.path.basename(image)
+   r = rasterio.open(imageList[i])            
+   img = r.read()
+   print("Normalizing "+name)
+   bn = np.apply_along_axis(BrigthnessNormalization, 0, img)
+   saveImage(bn, r)
 
 
