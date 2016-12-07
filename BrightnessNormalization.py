@@ -14,10 +14,6 @@
 # Date: 09/08/2016
 # Version: 1.0
 #
-# Usage:
-
-# python MNF.py <Imput raster format [default = tif]>
-#
 # examples:    python BrightnessNormalization.py -i raster.tif
 #
 # Bibliography:
