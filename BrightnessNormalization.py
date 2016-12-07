@@ -14,7 +14,7 @@
 # Date: 09/08/2016
 # Version: 1.0
 #
-# examples:    python BrightnessNormalization.py -i raster.tif
+# examples:   python BrightnessNormalization.py -i raster.tif
 #
 # Bibliography:
 #
