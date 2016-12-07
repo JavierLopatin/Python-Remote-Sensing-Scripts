@@ -2,11 +2,11 @@
 
 ########################################################################################################################
 #
-# BrightnessNormalization_cmd
+# BrightnessNormalization.py
 #
 # A python script to perform Brigtness Normalization of hyperspectral data
 #
-# Info: The script apply the Brightness Normalization presented in 
+# Info: The script apply the Brightness Normalization presented in
 #       Feilhauer et al., 2010 to all rasters contained in a folder
 #
 # Author: Javier Lopatin
@@ -15,12 +15,11 @@
 # Version: 1.0
 #
 # Usage:
+
+# python MNF.py <Imput raster format [default = tif]>
 #
-# python MNF.py <Imput raster format [default = tif]> 
+# examples:    python BrightnessNormalization.py -i raster.tif
 #
-# examples:    python BrightnessNormalization_cmd.py
-#              python BrightnessNormalization_cmd.py -f img
-# 
 # Bibliography:
 #
 # Feilhauer, H., Asner, G. P., Martin, R. E., Schmidtlein, S. (2010): Brightness-normalized Partial Least Squares
@@ -38,7 +37,7 @@ except ImportError:
    print("ERROR: Could not import Rasterio Python library.")
    print("Check if Rasterio is installed.")
 
-## Functions 
+## Functions
 
 def BrigthnessNormalization(img):
     r = img / np.sqrt( np.sum((img**2), 0) )
@@ -55,24 +54,22 @@ def saveImage(img, inputRaster):
     new_dataset.close()
 
 ### Run process
-        
+
 if __name__ == "__main__":
-   
+
    # create the arguments for the algorithm
    parser = argparse.ArgumentParser()
 
-   parser.add_argument('-i','--input', help='Imput raster', type=str, required=True)   
+   parser.add_argument('-i','--input', help='Imput raster', type=str, required=True)
    parser.add_argument('--version', action='version', version='%(prog)s 1.0')
    args = vars(parser.parse_args())
 
    # input raster
    image = args["input"]
-    
+
    name = os.path.basename(image)
-   r = rasterio.open(image)            
+   r = rasterio.open(image)
    img = r.read()
    print("Normalizing "+name)
    bn = np.apply_along_axis(BrigthnessNormalization, 0, img)
    saveImage(bn, r)
-
-
