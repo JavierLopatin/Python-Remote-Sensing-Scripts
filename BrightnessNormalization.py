@@ -46,7 +46,7 @@ def BrigthnessNormalization(img):
 
 def saveImage(img, inputRaster):
     # Save TIF image to a nre directory of name MNF
-    output = "BN/" + name[:-4] + "_BN.tif"
+    output = name[:-4] + "_BN.tif"
     new_dataset = rasterio.open(output, 'w', driver='GTiff',
                height=inputRaster.shape[0], width=inputRaster.shape[1],
                count=int(img.shape[0]), dtype=str(img.dtype),
@@ -69,7 +69,7 @@ if __name__ == "__main__":
    image = args["input"]
     
    name = os.path.basename(image)
-   r = rasterio.open(imageList[i])            
+   r = rasterio.open(image)            
    img = r.read()
    print("Normalizing "+name)
    bn = np.apply_along_axis(BrigthnessNormalization, 0, img)
