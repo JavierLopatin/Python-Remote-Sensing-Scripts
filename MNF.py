@@ -2,7 +2,7 @@
 
 ########################################################################################################################
 #
-# MNF_cmd.py
+# MNF.py
 # A python script to perform MNF transformation to remote sesning data.
 #
 # Info: The script perform MNF transformation to all raster images stored in a folder. 
@@ -21,8 +21,6 @@
 #               -s <Apply Savitzky Golay filtering [Optional]>
 #               -v <Accumulated explained variance [optional]> 
 #
-# --format [-f]: Input raster formats (default tif)
-# 
 # -- method [-m]: Method options: 1 (default) regular MNF transformation.
 #                                 2  MNF inverse transformation.
 #
@@ -34,14 +32,14 @@
 #
 # examples:   
 #             # Get the accumulated explained variance
-#             python MNF_cmd.py -i raster.tif -v
+#             python MNF.py -i raster.tif -v
 #
 #             # Get the regular MNF transformation
-#             python MNF_cmd.py -i raster 
-#             python MNF_cmd.py -i raster -s # with Savitzky Golay
+#             python MNF.py -i raster 
+#             python MNF.py -i raster -s # with Savitzky Golay
 #
 #             # with Brightness Normalization
-#             python MNF_cmd.py -i raster -c 10 -p
+#             python MNF_cmd.py -i raster -p
 #
 #             # Get the reduced nose MNF with inverse transformation
 #             python MNF_cmd.py -i raster -m 2
