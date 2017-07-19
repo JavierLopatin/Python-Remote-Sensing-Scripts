@@ -2,25 +2,20 @@
 
 ########################################################################################################################
 #
-# BrightnessNormalization_cmd
+# BrightnessNormalization.py
 #
 # A python script to perform Brigtness Normalization of hyperspectral data
 #
-# Info: The script apply the Brightness Normalization presented in 
+# Info: The script apply the Brightness Normalization presented in
 #       Feilhauer et al., 2010 to all rasters contained in a folder
 #
 # Author: Javier Lopatin
 # Email: javierlopatin@gmail.com
-# Date: 09/08/2016
+# Last changes: 07/12/2016
 # Version: 1.0
 #
-# Usage:
+# example: python BrightnessNormalization.py -i raster.tif
 #
-# python MNF.py <Imput raster format [default = tif]> 
-#
-# examples:    python BrightnessNormalization_cmd.py
-#              python BrightnessNormalization_cmd.py -f img
-# 
 # Bibliography:
 #
 # Feilhauer, H., Asner, G. P., Martin, R. E., Schmidtlein, S. (2010): Brightness-normalized Partial Least Squares
@@ -38,7 +33,7 @@ except ImportError:
    print("ERROR: Could not import Rasterio Python library.")
    print("Check if Rasterio is installed.")
 
-## Functions 
+## Functions
 
 def BrigthnessNormalization(img):
     r = img / np.sqrt( np.sum((img**2), 0) )
@@ -46,7 +41,7 @@ def BrigthnessNormalization(img):
 
 def saveImage(img, inputRaster):
     # Save TIF image to a nre directory of name MNF
-    output = "BN/" + name[:-4] + "_BN.tif"
+    output = name[:-4] + "_BN.tif"
     new_dataset = rasterio.open(output, 'w', driver='GTiff',
                height=inputRaster.shape[0], width=inputRaster.shape[1],
                count=int(img.shape[0]), dtype=str(img.dtype),
@@ -55,28 +50,22 @@ def saveImage(img, inputRaster):
     new_dataset.close()
 
 ### Run process
-        
+
 if __name__ == "__main__":
 
-# create the arguments for the algorithm
-    parser = argparse.ArgumentParser()
+   # create the arguments for the algorithm
+   parser = argparse.ArgumentParser()
 
-    parser.add_argument('-f','--format', help='Imput raster format, e.g: tif', type=str, default="tif")   
-    parser.add_argument('--version', action='version', version='%(prog)s 1.0')
-    args = vars(parser.parse_args())
+   parser.add_argument('-i','--input', help='Imput raster', type=str, required=True)
+   parser.add_argument('--version', action='version', version='%(prog)s 1.0')
+   args = vars(parser.parse_args())
 
-    # list of .tif files in the Input File Path     
-    imageList = glob.glob('*.'+args['format'])
-    # Create folders to store results if thay do no exist
-    if not os.path.exists("BN"):
-        os.makedirs("BN")
-    
-    for i in range(len(imageList)):
-        name = os.path.basename(imageList[i])
-        r = rasterio.open(imageList[i])            
-        img = r.read()
-        print("Normalizing "+name)
-        bn = np.apply_along_axis(BrigthnessNormalization, 0, img)
-        saveImage(bn, r)
+   # input raster
+   image = args["input"]
 
-
+   name = os.path.basename(image)
+   r = rasterio.open(image)
+   img = r.read()
+   print("Normalizing "+name)
+   bn = np.apply_along_axis(BrigthnessNormalization, 0, img)
+   saveImage(bn, r)

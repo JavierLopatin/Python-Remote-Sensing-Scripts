@@ -2,7 +2,7 @@
 
 ########################################################################################################################
 #
-# MNF_cmd.py
+# MNF.py
 # A python script to perform MNF transformation to remote sesning data.
 #
 # Info: The script perform MNF transformation to all raster images stored in a folder. 
@@ -14,15 +14,13 @@
 #
 # Usage:
 #
-# python MNF.py -f <Imput raster format [default = tif]> 
-#               -c <Number of components> 
+# python MNF.py -i <Imput raster> 
+#               -c <Number of components [default = inputRaster bands]> 
 #               -m <Method option [default = 1]> 
 #               -p <Preprocessing: Brightness Normalization of Hyperspectral data [Optional]> 
 #               -s <Apply Savitzky Golay filtering [Optional]>
 #               -v <Accumulated explained variance [optional]> 
 #
-# --format [-f]: Input raster formats (default tif)
-# 
 # -- method [-m]: Method options: 1 (default) regular MNF transformation.
 #                                 2  MNF inverse transformation.
 #
@@ -34,24 +32,21 @@
 #
 # examples:   
 #             # Get the accumulated explained variance
-#             python MNF_cmd.py -c 1 -v
-#
-#             # with Brightness Normalization
-#             python MNF_cmd.py -c 1 -v -p
+#             python MNF.py -i raster.tif -v
 #
 #             # Get the regular MNF transformation
-#             python MNF_cmd.py -f img -c 10 
-#             python MNF_cmd.py -f img -c 10 -s # with Savitzky Golay
+#             python MNF.py -i raster 
+#             python MNF.py -i raster -s # with Savitzky Golay
 #
 #             # with Brightness Normalization
-#             python MNF_cmd.py -f tif -c 10 -p
+#             python MNF_cmd.py -i raster -p
 #
 #             # Get the reduced nose MNF with inverse transformation
-#             python MNF_cmd.py -c 10 -m 2
-#             python MNF_cmd.py -c 10 -m 2 -s # with Savitzky Golay
+#             python MNF_cmd.py -i raster -m 2
+#             python MNF_cmd.py -i raster -m 2 -s # with Savitzky Golay
 #
 #             # with Brightness Normalization
-#             python MNF_cmd.py -c 10 -m 2 -p
+#             python MNF_cmd.py -i raster -m 2 -p
 #
 #
 # Bibliography:
@@ -66,7 +61,7 @@
 ########################################################################################################################
 
 from __future__ import division
-import os, glob, argparse
+import argparse
 import numpy as np
 try:
    import rasterio
@@ -86,16 +81,20 @@ def BrigthnessNormalization(img):
     r = img / np.sqrt( np.sum((img**2), 0) )
     return r
 
-def MNF(img, n_components):
+def MNF(img):
     mnf = ns.MNF()
     mnf.apply(img)
     if args["SavitzkyGolay"]==True:
         dn = ns.SavitzkyGolay()
-        mnf[:,:,1:2] = dn.denoise_bands(mnf[:,:,1:2], 15, 2)
+        mnf.wdata[:,:,1:2] = dn.denoise_bands(mnf.wdata[:,:,1:2], 15, 2)
+    if args["components"] == True:
+        n_components = args['components']
+    else:
+        n_components = img.shape[2]
     r = mnf.get_components(n_components)
     return r
 
-def MNF_reduce_component_2_noise_and_invert(img, n_components):
+def MNF_reduce_component_2_noise_and_invert(img):
     # Reduce the second component noise and
     # return the inverse transform
     mnf = ns.MNF()
@@ -104,6 +103,10 @@ def MNF_reduce_component_2_noise_and_invert(img, n_components):
         dn = ns.SavitzkyGolay()
         tdata[:,:,1:2] = dn.denoise_bands(tdata[:,:,1:2], 15, 2)
     r = mnf.inverse_transform(tdata)
+    if args["components"] == True:
+        n_components = args['components']
+    else:
+        n_components = img.shape[2]
     r2 = r[:,:,1:n_components+1]
     return r2
     
@@ -147,13 +150,15 @@ def reshape_as_raster(arr):
 def saveMNF(img, inputRaster):
     # Save TIF image to a nre directory of name MNF
     img2 = reshape_as_raster(img)
+    output = outMNF
     if args["preprop"]==True:
-    	output = "BN_MNF/" + name[:-4] + "_BN_MNF.tif"
-    else:
-	output = "MNF/" + name[:-4] + "_MNF.tif"
+        output = output[:-4] + "_BN.tif"    
+    if args["SavitzkyGolay"]==True:
+        output = output[:-4] + "_Savitzky.tif"
+    
     new_dataset = rasterio.open(output, 'w', driver='GTiff',
                height=inputRaster.shape[0], width=inputRaster.shape[1],
-               count=int(n_components), dtype=str(img.dtype),
+               count=img.shape[2], dtype=str(img.dtype),
                crs=inputRaster.crs, transform=inputRaster.transform)
     new_dataset.write(img2)
     new_dataset.close()
@@ -161,13 +166,14 @@ def saveMNF(img, inputRaster):
 ### Run process
         
 if __name__ == "__main__":
+    
     # create the arguments for the algorithm
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-f','--format', 
-      help='Input raster format [default = tif].', type=str, default="tif")
+    parser.add_argument('-i','--inputRaster', 
+      help='Input raster', type=str, required=True)
     parser.add_argument('-c','--components', 
-      help='Number of components.', type=int, required=True)
+      help='Number of components.', type=int, default=False)
     parser.add_argument('-m','--method', 
       help='MNF method to apply: 1 (default) = regular MNF transformation; 2 = MNF invers transformation.', 
       type=int, default=1)
@@ -181,60 +187,48 @@ if __name__ == "__main__":
     
     parser.add_argument('--version', action='version', version='%(prog)s 1.0')
     args = vars(parser.parse_args())
-        
-    # Define number of components for the MNF
-    n_components = args['components']
-    # list of .tif files in the Input File Path     
-    imageList = glob.glob('*.'+args['format'])
-    # Create folders to store results if thay do no exist
-    if not os.path.exists("MNF"):
-        os.makedirs("MNF")
-
+     
+    # data imputps/outputs
+    inRaster = args["inputRaster"]
+    outMNF = inRaster[:-4] + "_MNF.tif"
+    
     if args['variance']==True:
         # Show the accumulated explained variance
-        for i in range(len(imageList)):
-            name = os.path.basename(imageList[i])
-            r = rasterio.open(imageList[i])            
+        r = rasterio.open(inRaster)            
+        r2 = r.read()
+        # Apply Brightness Normalization if the option -p is added
+        if args["preprop"]==True:
+            r2 = np.apply_along_axis(BrigthnessNormalization, 0, r2)
+        img = reshape_as_image(r2)
+        print("Accumulated explained variances of " + inRaster + "are:")
+        explained_variance(img)
+    else:  
+        if args['method']==1:
+            r = rasterio.open(inRaster)            
             r2 = r.read()
             # Apply Brightness Normalization if the option -p is added
             if args["preprop"]==True:
-                     r2 = np.apply_along_axis(BrigthnessNormalization, 0, r2)
+                r2 = np.apply_along_axis(BrigthnessNormalization, 0, r2)
             img = reshape_as_image(r2)
-            print("Accumulated explained variances of " + name + "are:")
-            explained_variance(img)
-    else:  
-        if args['method']==1:
-            for i in range(len(imageList)):
-                # Load raster/convert to ndarray format
-                name = os.path.basename(imageList[i])
-                r = rasterio.open(imageList[i])            
-                r2 = r.read()
-                # Apply Brightness Normalization if the option -p is added
-                if args["preprop"]==True:
-                     r2 = np.apply_along_axis(BrigthnessNormalization, 0, r2)
-                img = reshape_as_image(r2)
-                # Apply MNF -m 1
-                print("Creating MNF components of " + name)
-                mnf = MNF(img, n_components)
-                saveMNF(mnf, r)
+            # Apply MNF -m 1
+            print("Creating MNF components of " + inRaster)
+            mnf = MNF(img)
+            saveMNF(mnf, r)
                     
         elif args['method']==2:
-            for i in range(len(imageList)):
-                # Load raster/convert to ndarray format
-                name = os.path.basename(imageList[i])
-                r = rasterio.open(imageList[i])            
-                r2 = r.read()
-                # Apply Brightness Normalization if the option -p is added
-                if args["preprop"]==True:
-                     r2 = np.apply_along_axis(BrigthnessNormalization, 0, r2)
-                img = reshape_as_image(r2)
-                # Apply MNF -m 2
-                print("Creating MNF components of " + name)
-                mnf = MNF_reduce_component_2_noise_and_invert(img, n_components)
-                saveMNF(mnf, r) 
+            r = rasterio.open(inRaster)            
+            r2 = r.read()
+            # Apply Brightness Normalization if the option -p is added
+            if args["preprop"]==True:
+                r2 = np.apply_along_axis(BrigthnessNormalization, 0, r2)
+            img = reshape_as_image(r2)
+            # Apply MNF -m 2
+            print("Creating MNF components of " + inRaster)
+            mnf = MNF_reduce_component_2_noise_and_invert(img)
+            saveMNF(mnf, r) 
         else: 
             print('ERROR!. Command should have the form:')
-            print('python MNF.py -f <Imput raster formar> -c <Number of components> -m <Method option>[optional] -v <Accumulated explained variance>[optional]')
+            print('python MNF.py -i <Imput raster> -o <output MNF> -c <Number of components> -m <Method option>[optional] -v <Accumulated explained variance>[optional]')
             print("")
             print("Method options: 1 (default) regular MNF transformation")
             print("                2  inverse transform")
