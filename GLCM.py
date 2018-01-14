@@ -5,12 +5,12 @@ Python script to GLCM texture indices
 Usage:
 python GLCM.py -i inData -w WindowSize -p PreProcessing
     -- inData [-i]: text with input raster image
-    -- WindowSize [-w]: Moving window size. It must be odd. Coud be one or several  values
+    -- WindowSize [-w]: Moving window size. It must be odd. Coud be one or several  values (default 5)
     -- BandToUse [-b]: Band to use form the raster stack (default 1).
     -- RGB [-r]: Use intensitz transformation if inData is an RGB image
     
 examples:
-    - python GLCM.py -i raster.tif # use the first band and a 3 X 3 moving window
+    - python GLCM.py -i raster.tif # use the first band and a 5 X 5 moving window
     - python GLCM.py -i raster.tif - w 7 # Use a 7 X 7 moving window
     - python GLCM.py -i raster.tif - w 7 -b 3 # Use a 7 X 7 moving window and the third band
     - python GLCM.py -i raster.tif -r # Use the RGN intensitz transformation
@@ -177,7 +177,7 @@ if __name__ == "__main__":
     parser.add_argument('-i','--inputRaster', 
       help='Input raster', type=str, required=True)
     parser.add_argument('-w','--WindowSize', 
-      help='One or a list of moving window sizes (default 3).', nargs='+', type=int, default=3)
+      help='One or a list of moving window sizes (default 5).', nargs='+', type=int, default=5)
     parser.add_argument('-b','--BandToUse', 
       help='Band to use for the textures (default 1).', type=int, default=1)
     parser.add_argument('-r','--RGB', 
