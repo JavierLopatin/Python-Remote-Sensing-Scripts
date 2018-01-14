@@ -132,7 +132,7 @@ def reshape_as_image(arr):
     source : array-like in a of format (bands, rows, columns)
     """
     # swap the axes order from (bands, rows, columns) to (rows, columns, bands)
-    im = np.ma.transpose(arr, [1,2,0])
+    im = np.transpose(arr, [1,2,0])
     return im
 
 def reshape_as_raster(arr):
