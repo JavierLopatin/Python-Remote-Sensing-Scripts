@@ -5,7 +5,7 @@ Python script to GLCM texture indices
 Usage:
 python GLCM.py -i inData -w WindowSize -p PreProcessing
     -- inData [-i]: text with input raster image
-    -- WindowSize [-w]: Moving window size. It must be odd. Coud be one or severl values
+    -- WindowSize [-w]: Moving window size. It must be odd. Coud be one or several  values
     -- BandToUse [-b]: Band to use form the raster stack (default 1).
     -- RGB [-r]: Use intensitz transformation if inData is an RGB image
     
