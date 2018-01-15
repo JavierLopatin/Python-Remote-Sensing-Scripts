@@ -81,18 +81,6 @@ def save_raster(array, inputRaster, size):
     new_dataset.write(array)
     new_dataset.close()
   
-def reshape_as_image(arr):
-    """Returns the source array reshaped into the order
-    expected by image processing and visualization software
-    (matplotlib, scikit-image, etc)
-    by swapping the axes order from (bands, rows, columns)
-    to (rows, columns, bands)
-    Parameters
-    ----------
-    source : array-like in a of format (bands, rows, columns)
-    """
-    # swap the axes order from (bands, rows, columns) to (rows, columns, bands)
-    return np.transpose(arr, [1,2,0])
         
 def reshape_as_raster(array):
     """Returns the array in a raster order
