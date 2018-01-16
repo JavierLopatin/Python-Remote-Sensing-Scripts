@@ -188,6 +188,6 @@ if __name__ == "__main__":
 
     # Save to CSV file
     name = os.path.basename(shp)
-    df.to_csv(name[:-4] + ".csv", index=False, heather=True, na_rep='NA') 
+    df.to_csv(name[:-4] + ".csv", index=False, header=True, na_rep='NA') 
 
 
