@@ -175,7 +175,6 @@ df[:5]
     </tr>
   </tbody>
 </table>
-<p>5 rows Ã— 42 columns</p>
 </div>
 
  ### You can also perform a MNF transformation of the data. This function have several options, like applying Savitzky Golay filtering and brightness normalization of the spectra. The basic function is like (image resample to 2m in the example):
