@@ -185,7 +185,7 @@ python GLCM.py -i peatland_MNF.tif
 
 ![alt text](/README/GLCM.png)
 
-### Finally, we can also obtain texture information from point clouds (in this case based in the UAV photogrametric point cloud) based on the Canupo algorithm proposed in [This paper](3D terrestrial lidar data classification of complex natural scenes using a multi-scale dimensionality criterion: Applications in geomorphology), also implemented in the [CloudCompare](http://www.danielgm.net/cc/) LiDAR software. Nevertheless, both the paper and the software implemented the transformation to generate poin-based classification while this python script produces texture rasters to be use in any application: 
+### Finally, we can also obtain texture information from point clouds (in this case based in the UAV photogrametric point cloud) based on the Canupo algorithm proposed in [This paper](https://www.sciencedirect.com/science/article/pii/S0924271612000330), also implemented in the [CloudCompare](http://www.danielgm.net/cc/) LiDAR software. Nevertheless, both the paper and the software implemented the transformation to generate poin-based classification while this python script produces texture rasters to be use in any application: 
 
 ```terminal
 python canupo.py -i lidar.txt -s 1 5 1 -r 1 
