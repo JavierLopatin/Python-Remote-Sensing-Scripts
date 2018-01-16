@@ -5,7 +5,7 @@
 
 ### As an example, I will use a UAV-based hyperspectral image of a peatland in central-south Chile. The image have 41 bands (10 nm width) ranging form 480-880 nm and a pixel size of 10 cm. The green dots correspond to plots where measurements of biomass, species composition and carbon stock information were taken:
 
-![alt text](https://github.com/JavierLopatin/Python-Remote-Sensing-Scripts/tree/master/README/peatland.PNG)
+![alt text](/README/peatland.PNG)
 
 ### With our scripts you can first extract the spectra in the plots location in a few seconds
 
@@ -13,15 +13,7 @@
 python ExtractValues.py -r peatland.tif -s plots.shp -i ID
 ```
 
-
-```python
-## Check output
-import pandas as pd
-
-df = pd.read_csv("plots.csv")
-df[:5]
-```
-
+### Check output
 
 <div>
 
