@@ -175,7 +175,7 @@ python ExtractValues.py -r peatland.tif -s plots.shp -i ID
 python MNF.py -i peatland.tif 
 ```
 
-<img src="MNF.png", alt="Drawing" style="width: 600px;"/>
+![alt text](/README/MNF.png)
 
 ### Get the Gray-Level Co-Occurrence Matrix (GLCM) textures from the image. Use the first MNF component as imput and a moving window of 5 X 5 pixels (default):
 
@@ -183,7 +183,7 @@ python MNF.py -i peatland.tif
 python GLCM.py -i peatland_MNF.tif  
 ```
 
-<img src="GLCM.png", alt="Drawing" style="width: 600px;"/>
+![alt text](/README/GLCM.png)
 
 ### Finally, we can also obtain texture information from point clouds (in this case based in the UAV photogrametric point cloud) based on the Canupo algorithm proposed in [This paper](3D terrestrial lidar data classification of complex natural scenes using a multi-scale dimensionality criterion: Applications in geomorphology), also implemented in the [CloudCompare](http://www.danielgm.net/cc/) LiDAR software. Nevertheless, both the paper and the software implemented the transformation to generate poin-based classification while this python script produces texture rasters to be use in any application: 
 
@@ -192,4 +192,4 @@ python canupo.py -i lidar.txt -s 1 5 1 -r 1
 # scales: 1,2,3,4,5 m; output resolution 1 m
 ```
 
-<img src="canupo.png", alt="Drawing" style="width: 600px;"/>
+![alt text](/README/canupo.png)
