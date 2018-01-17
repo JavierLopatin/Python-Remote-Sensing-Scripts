@@ -16,38 +16,24 @@
 #
 # python MNF.py -i <Imput raster> 
 #               -c <Number of components [default = inputRaster bands]> 
-#               -m <Method option [default = 1]> 
 #               -p <Preprocessing: Brightness Normalization of Hyperspectral data [Optional]> 
 #               -s <Apply Savitzky Golay filtering [Optional]>
-#               -v <Accumulated explained variance [optional]> 
-#
-# -- method [-m]: Method options: 1 (default) regular MNF transformation.
-#                                 2  MNF inverse transformation.
-#
-# --preprop [-p]: Brightness Normalization presented in Feilhauer et al., 2010
+#            
+# # --preprop [-p]: Brightness Normalization presented in Feilhauer et al., 2010
 #
 # --SavitzkyGolay [-s]: Apply Savitzky Golay filtering
 #
-# --variance [-v]: Get the accumulative explained variance of MNF components
-#
-# examples:   
-#             # Get the accumulated explained variance
-#             python MNF.py -i raster.tif -v
-#
+# # examples:   
 #             # Get the regular MNF transformation
-#             python MNF.py -i raster 
-#             python MNF.py -i raster -s # with Savitzky Golay
+#             python MNF.py -i raster
+#
+#             # with Savitzky Golay 
+#             python MNF.py -i raster -s 
 #
 #             # with Brightness Normalization
 #             python MNF_cmd.py -i raster -p
 #
-#             # Get the reduced nose MNF with inverse transformation
-#             python MNF_cmd.py -i raster -m 2
-#             python MNF_cmd.py -i raster -m 2 -s # with Savitzky Golay
-#
-#             # with Brightness Normalization
-#             python MNF_cmd.py -i raster -m 2 -p
-#
+# 
 #
 # Bibliography:
 #
