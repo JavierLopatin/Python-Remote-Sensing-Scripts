@@ -72,7 +72,7 @@ def save_raster(array, inputRaster, size):
         os.makedirs("GLCM")
         
     # reshape array
-    array = reshape_as_raster(array)
+    array = np.transpose(array, [2,0,1])
     output = "GLCM/" + inputRaster.name[:-4] + "_GLCM_size_" + str(size) + ".tif"
     new_dataset = rasterio.open(output, 'w', driver='GTiff',
                height=inputRaster.shape[0], width=inputRaster.shape[1],
@@ -81,18 +81,6 @@ def save_raster(array, inputRaster, size):
     new_dataset.write(array)
     new_dataset.close()
   
-        
-def reshape_as_raster(array):
-    """Returns the array in a raster order
-    by swapping the axes order from (rows, columns, bands)
-    to (bands, rows, columns)
-    Parameters
-    ----------
-    arr : array-like in the image form of (rows, columns, bands)
-    """
-    # swap the axes order from (rows, columns, bands) to (bands, rows, columns)
-    return np.transpose(array, [2,0,1])
-
 def homogeneity_fun(outRaster):
     """
     create Homogeneity using the GLCM function 
