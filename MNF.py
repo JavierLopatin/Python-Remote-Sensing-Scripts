@@ -49,6 +49,7 @@
 from __future__ import division
 import argparse
 import numpy as np
+import pandas as pd
 from sklearn.decomposition import PCA
 try:
    import rasterio
@@ -153,5 +154,17 @@ if __name__ == "__main__":
     print("The accumulative explained variance per component is:")
     print(var)
    
-    # save the MNF image
+    # save the MNF image and explained variance
     saveMNF(mnf, r) 
+    bandNames = []
+    for i in range(mnf.shape[2]):
+        a = "MNF" + str(i+1)
+        bandNames.append(a)
+    bandNames = pd.DataFrame(bandNames)
+    variance = pd.DataFrame(var)
+    txtOut = pd.concat([bandNames, variance], axis=1)
+    txtOut.columns=["Bands", "AccVariance"]
+    txtOut.to_csv(outMNF[:-4] + ".csv", index=False, header=True, na_rep='NA') 
+     
+        
+        
