@@ -4,7 +4,7 @@ CloudMetric2Raster.py
 
 Rasterize a CloudMetrics file created by FUSION
 
-It needs: the shapefile is a grid of polygons of the size you want the raster pixel
+It needs: the shapefile is a grid of polygons of the size of the raster pixel
 
 Usage:
     python CloudMetric2Raster.py -l <Imput lidar data> 
