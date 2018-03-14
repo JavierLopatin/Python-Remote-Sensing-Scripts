@@ -19,7 +19,7 @@ Created on Fri Mar  9 15:37:06 2018
 @author: Lopatin
 """
 
-import os, glob, math, argparse
+import os, glob, math, argparse, rasterio
 from subprocess import call
 import pandas as pd
 import geopandas as gpd
@@ -43,6 +43,7 @@ ID        = args['id']
 
 ### load shapefile
 r = gpd.read_file(input_shp)
+crs = r.crs # get CRS
 
 # get the position of the ID column in the attribute table
 idName = str
@@ -87,6 +88,7 @@ metrics.columns = metrics.columns.str.replace(" ", "_")
 # replece the column mane 'FileTitle' with the shapefile ID
 metrics = metrics.rename(columns = {'FileTitle' : ID})
 
+
 ### merge the metrics with the shapefile
 r = r.merge(metrics, on=ID)
 out_shp = input_shp[:-4]+"_metrics.shp"
@@ -96,12 +98,35 @@ r.to_file(out_shp, driver='ESRI Shapefile')
 ### creating metric raster
 # load the shapefile (important as the column amnes may have been shortened)
 r = gpd.read_file(out_shp)
-names = r.columns[-39:]
-pixel_size = pixel_size = math.sqrt(r.area[0])
+names = r.columns[-39:] # get column names
+if 'geometry' in names:
+    names = names[:-1]
+pixel_size = pixel_size = math.sqrt(r.area[0]) # get pixel size
+r.crs = crs # set CRS
 
-#rasterize all metrics
+### rasterize all metrics
 print("Rasterizing the metrics...")
 for i in tqdm( range(len(names)-1) ):
-    process = "gdal_rasterize -a "+names[i]+" -tr "+str(pixel_size)+" "+str(pixel_size)+" -l "+out_shp[:-4]+" "+out_shp+" "+"FUSION_tmp/"+metrics.columns[i]+".tif"
+    process = "gdal_rasterize -a "+names[i]+" -tr "+str(pixel_size)+" "+str(pixel_size)+" -l "+out_shp[:-4]+" "+out_shp+" "+"FUSION_tmp/"+names[i]+".tif"
     call(process)  
 print("Done!")
+
+### Stack rasters
+# Read metadata of first file
+with rasterio.open("FUSION_tmp/"+names[0]+".tif") as src0:
+    meta = src0.meta
+
+# Update meta to reflect the number of layers
+meta.update(count = len(names))
+
+# Read each layer and write it to stack
+outName = input_shp[:-4]+"_metrics2.tif"
+with rasterio.open(outName, 'w', **meta) as dst:
+    for id, layer in enumerate(names):
+        with rasterio.open("FUSION_tmp/"+layer+".tif") as src1:
+            dst.write_band(id + 1, src1.read(1))
+
+# ad the CRS to raster
+with rasterio.open(outName, 'r+') as r:
+    r.crs = crs
+
