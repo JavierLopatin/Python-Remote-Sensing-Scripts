@@ -126,7 +126,7 @@ with rasterio.open(outName, 'w', **meta) as dst:
         with rasterio.open("FUSION_tmp/"+layer+".tif") as src1:
             dst.write_band(id + 1, src1.read(1))
 
-# ad the CRS to raster
+# add the CRS to raster
 with rasterio.open(outName, 'r+') as r:
     r.crs = crs
 
