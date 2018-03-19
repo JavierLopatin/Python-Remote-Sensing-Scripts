@@ -28,6 +28,7 @@ from tqdm import tqdm
 ### path and name of the input shapefile
 FusionDir = "C:/FUSION/"
 lastoolsDir = "C:/lastools/bin/"
+
 # create the arguments for the algorithm
 parser = argparse.ArgumentParser()
 parser.add_argument('-l','--lidar', help='Input Lidar data', type=str)   
