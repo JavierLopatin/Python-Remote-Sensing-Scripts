@@ -187,7 +187,7 @@ if __name__ == "__main__":
         df = ExtractValues(raster, shp, func, ID)
 
     # Save to CSV file
-    name = os.path.basename(shp)
+    name = os.path.basename(raster)
     df.to_csv(name[:-4] + ".csv", index=False, header=True, na_rep='NA') 
 
 

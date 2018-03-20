@@ -103,11 +103,11 @@ names = r.columns[-39:] # get column names
 if 'geometry' in names:
     names = names[:-1]
 pixel_size = pixel_size = math.sqrt(r.area[0]) # get pixel size
-r.crs = crs # set CRS
+crs = r.crs # set CRS
 
 ### rasterize all metrics
 print("Rasterizing the metrics...")
-for i in tqdm( range(len(names)-1) ):
+for i in tqdm( range(len(names)) ):
     process = "gdal_rasterize -a "+names[i]+" -tr "+str(pixel_size)+" "+str(pixel_size)+" -l "+out_shp[:-4]+" "+out_shp+" "+"FUSION_tmp/"+names[i]+".tif"
     call(process)  
 print("Done!")
@@ -121,7 +121,7 @@ with rasterio.open("FUSION_tmp/"+names[0]+".tif") as src0:
 meta.update(count = len(names))
 
 # Read each layer and write it to stack
-outName = input_shp[:-4]+"_metrics2.tif"
+outName = input_shp[:-4]+"_metrics.tif"
 with rasterio.open(outName, 'w', **meta) as dst:
     for id, layer in enumerate(names):
         with rasterio.open("FUSION_tmp/"+layer+".tif") as src1:

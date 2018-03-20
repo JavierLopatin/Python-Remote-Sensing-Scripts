@@ -91,10 +91,6 @@ def MNF(img):
     if args["SavitzkyGolay"]==True:
         dn = ns.SavitzkyGolay()
         mnf[:,:,1:2] = dn.denoise_bands(mnf[:,:,1:2], 15, 2)
-    if args["components"] == True:
-        n_components = args['components']
-    else:
-        n_components = img.shape[2]
     r = mnf[:,:,:n_components]
     var = np.cumsum(np.round(pca.explained_variance_ratio_, decimals=4)*100)
     return r, var
@@ -142,6 +138,12 @@ if __name__ == "__main__":
     r = rasterio.open(inRaster)            
     r2 = r.read() # transform to array
     
+    # set number of components to retrive
+    if args["components"] is not None:
+        n_components = args['components']
+    else:
+        n_components = r2.shape[0]
+       
     # Apply Brightness Normalization if the option -p is added
     if args["preprop"]==True:
         r2 = np.apply_along_axis(BrigthnessNormalization, 0, r2)

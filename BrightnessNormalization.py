@@ -25,7 +25,7 @@
 ########################################################################################################################
 
 from __future__ import division
-import os, glob, argparse
+import os, argparse
 import numpy as np
 try:
    import rasterio
@@ -66,6 +66,7 @@ if __name__ == "__main__":
    name = os.path.basename(image)
    r = rasterio.open(image)
    img = r.read()
+   img = img.astype('float32')
    print("Normalizing "+name)
    bn = np.apply_along_axis(BrigthnessNormalization, 0, img)
    saveImage(bn, r)
