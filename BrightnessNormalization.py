@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-########################################################################################################################
+########################################################################################################
 #
 # BrightnessNormalization.py
 #
@@ -22,7 +22,7 @@
 # Regression for hyperspectral data. Journal of Quantitative Spectroscopy and Radiative Transfer 111(12-13),
 # pp. 1947–1957. 10.1016/j.jqsrt.2010.03.007
 #
-########################################################################################################################
+########################################################################################################
 
 from __future__ import division
 import os, argparse
@@ -33,16 +33,34 @@ except ImportError:
    print("ERROR: Could not import Rasterio Python library.")
    print("Check if Rasterio is installed.")
 
+############
 ## Functions
+############
 
-def BrigthnessNormalization(img):
-    r = img / np.sqrt( np.sum((img**2), 0) )
-    return r
+class BrigthnessNormalization(BaseEstimator, TransformerMixin):
+    """
+    Brightness transformation of spectra as described in
+    Feilhauer, H., Asner, G. P., Martin, R. E., Schmidtlein, S. (2010): 
+    Brightness-normalized Partial Least Squares Regression for hyperspectral data. 
+    Journal of Quantitative Spectroscopy and Radiative Transfer 111(12-13),
+    1947–1957. 10.1016/j.jqsrt.2010.03.007
+    """
+    from sklearn.base import BaseEstimator, TransformerMixin
+    
+    def __init__(self, img = True):
+        self.img = img
+    def fit(self, X, y=None):
+        return self  # nothing else to do
+    def transform(self, X, y=None):
+        def norm(r):
+            norm = r / np.sqrt( np.sum((r**2), 0) )
+            return norm
+        bn = np.apply_along_axis(norm, 2, X)
+        return bn
 
-def saveImage(img, inputRaster):
-    # Save TIF image to a nre directory of name MNF
-    output = name[:-4] + "_BN.tif"
-    new_dataset = rasterio.open(output, 'w', driver='GTiff',
+def saveRaster(img, inputRaster, outputName):
+    # Save created raster to TIFF
+    new_dataset = rasterio.open(outputName, 'w', driver='GTiff',
                height=inputRaster.shape[0], width=inputRaster.shape[1],
                count=int(img.shape[0]), dtype=str(img.dtype),
                crs=inputRaster.crs, transform=inputRaster.transform)
@@ -65,8 +83,11 @@ if __name__ == "__main__":
 
    name = os.path.basename(image)
    r = rasterio.open(image)
-   img = r.read()
-   img = img.astype('float32')
-   print("Normalizing "+name)
-   bn = np.apply_along_axis(BrigthnessNormalization, 0, img)
-   saveImage(bn, r)
+   img = r.read().astype('float32')
+   img = np.transpose(img, [1,2,0]) # get to (raw, column, band) shape 
+   # apply normalization
+   bn = BrigthnessNormalization()
+   bn = bn.fit_transform(img)
+   bn = np.transpose(bn, [2,0,1]) # get to (raw, column, band) shape 
+   # save created raster
+   saveRaster(bn, r, name[:-4]+"_BN.tif")
