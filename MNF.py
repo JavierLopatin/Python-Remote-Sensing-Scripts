@@ -21,14 +21,9 @@
 #            
 # # --preprop [-p]: Brightness Normalization presented in Feilhauer et al., 2010
 #
-# --SavitzkyGolay [-s]: Apply Savitzky Golay filtering
-#
 # # examples:   
 #             # Get the regular MNF transformation
 #             python MNF.py -i raster
-#
-#             # with Savitzky Golay 
-#             python MNF.py -i raster -s 
 #
 #             # with Brightness Normalization
 #             python MNF_cmd.py -i raster -p
@@ -51,6 +46,7 @@ import argparse
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
+from sklearn.base import BaseEstimator, TransformerMixin
 try:
    import rasterio
 except ImportError:
@@ -67,42 +63,48 @@ except ImportError:
 ### Functions 
 ################
 
-def BrigthnessNormalization(img):
-    """
-    Brightness normaliyation for hyperspectral data.
-    See Feilhauer et al. (2010)
-    """ 
-    r = img / np.sqrt( np.sum((img**2), 0) )
-    return r
 
-def MNF(img):
+class MNF(BaseEstimator, TransformerMixin):
     """
     Apply a MNF transform to the image
     'img' must have (raw, column, band) shape
     """
-    w = ns.Whiten()
-    wdata = w.apply(img)
-    numBands = img.shape[2]
-    h, w, numBands = wdata.shape
-    X = np.reshape(wdata, (w*h, numBands))
-    pca = PCA()
-    mnf = pca.fit_transform(X)
-    mnf = np.reshape(mnf, (h, w, numBands))
-    if args["SavitzkyGolay"]==True:
-        dn = ns.SavitzkyGolay()
-        mnf[:,:,1:2] = dn.denoise_bands(mnf[:,:,1:2], 15, 2)
-    r = mnf[:,:,:n_components]
-    var = np.cumsum(np.round(pca.explained_variance_ratio_, decimals=4)*100)
-    return r, var
+    def __init__(self, n_components=1, BrightnessNormalization=False):
+        self.n_components = n_components
+        self.BrightnessNormalization = BrightnessNormalization
+    def fit(self, X, y=None):
+        return self  # nothing else to do
+    def transform(self, X, y=None):
+        X = X.astype('float32')
+        # apply brightness normalization
+        # if raster
+        if self.BrightnessNormalization==True:
+            def norm(r):
+                    norm = r / np.sqrt( np.sum((r**2), 0) )
+                    return norm
+            if len(X.shape) == 3:
+                X = np.apply_along_axis(norm, 2, X)
+            # if 2D array
+            if len(X.shape) == 2:
+                    X = np.apply_along_axis(norm, 0, X)
+        w = ns.Whiten()
+        wdata = w.apply(X)
+        numBands = X.shape[2]
+        h, w, numBands = wdata.shape
+        X = np.reshape(wdata, (w*h, numBands))
+        pca = PCA()
+        mnf = pca.fit_transform(X)
+        mnf = np.reshape(mnf, (h, w, numBands))
+        mnf = mnf[:,:,:self.n_components]
+        var = np.cumsum(np.round(pca.explained_variance_ratio_, decimals=4)*100)
+        return mnf, var
 
 def saveMNF(img, inputRaster):
     # Save TIF image to a nre directory of name MNF
     img2 = np.transpose(img, [2,0,1]) # get to (band, raw, column) shape 
     output = outMNF 
     if args["preprop"]==True:
-        output = output[:-4] + "_BN.tif"    
-    if args["SavitzkyGolay"]==True:
-        output = output[:-4] + "_Savitzky.tif"
+        output = output[:-4] + "_BN.tif"
     new_dataset = rasterio.open(output , 'w', driver='GTiff',
                height=inputRaster.shape[0], width=inputRaster.shape[1],
                count=img.shape[2], dtype=str(img.dtype),
@@ -135,7 +137,7 @@ if __name__ == "__main__":
     outMNF = inRaster[:-4] + "_MNF.tif"
     
     # load raster
-    r = rasterio.open(inRaster)            
+    r = rasterio.open(inRaster)
     r2 = r.read() # transform to array
     
     # set number of components to retrive
@@ -143,18 +145,24 @@ if __name__ == "__main__":
         n_components = args['components']
     else:
         n_components = r2.shape[0]
-       
-    # Apply Brightness Normalization if the option -p is added
-    if args["preprop"]==True:
-        r2 = np.apply_along_axis(BrigthnessNormalization, 0, r2)
-        r2 = np.nan_to_num(r2)
         
     img = np.transpose(r2, [1,2,0]) # get to (raw, column, band) shape 
-    # Apply MNF
-    print("Creating MNF components of " + inRaster)
-    mnf, var = MNF(img)
-    print("The accumulative explained variance per component is:")
-    print(var)
+    #############
+    ### Apply MNF
+    # Apply Brightness Normalization if the option -p is added
+    if args["preprop"]==True:
+        print("Creating MNF components of " + inRaster)
+        model = MNF(n_components=n_components, BrightnessNormalization=True)
+        mnf, var = model.fit_transform(img)
+        print("The accumulative explained variance per component is:")
+        print(var)
+    # otherwie
+    else:
+        print("Creating MNF components of " + inRaster)
+        model = MNF(n_components=n_components)
+        mnf, var = model.fit_transform(img)
+        print("The accumulative explained variance per component is:")
+        print(var)
    
     # save the MNF image and explained variance
     saveMNF(mnf, r) 
@@ -167,6 +175,3 @@ if __name__ == "__main__":
     txtOut = pd.concat([bandNames, variance], axis=1)
     txtOut.columns=["Bands", "AccVariance"]
     txtOut.to_csv(outMNF[:-4] + ".csv", index=False, header=True, na_rep='NA') 
-     
-        
-        
