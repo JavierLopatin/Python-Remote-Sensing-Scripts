@@ -92,13 +92,13 @@ class MNF(BaseEstimator, TransformerMixin):
         # if raster
         if self.BrightnessNormalization==True:
             def norm(r):
-                    norm = r / np.sqrt( np.sum((r**2), 0) )
-                    return norm
+                norm = r / np.sqrt( np.sum((r**2), 0) )
+                return norm
             if len(X.shape) == 3:
                 X = np.apply_along_axis(norm, 2, X)
             # if 2D array
             if len(X.shape) == 2:
-                    X = np.apply_along_axis(norm, 0, X)
+                X = np.apply_along_axis(norm, 0, X)
         w = ns.Whiten()
         wdata = w.apply(X)
         numBands = X.shape[2]
