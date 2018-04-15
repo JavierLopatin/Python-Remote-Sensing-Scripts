@@ -17,36 +17,7 @@
 ########################################################################################################
 
 from __future__ import division
-
 from sklearn.base import BaseEstimator, TransformerMixin
-import pandas as pd
-import numpy as np
-from sklearn.decomposition import PCA
-
-
-try:
-   import rasterio
-except ImportError:
-   print("ERROR: Could not import Rasterio Python library.")
-   print("Check if Rasterio is installed.")
-
-try:
-    from rasterstats import zonal_stats
-except ImportError:
-   print("ERROR: Could not import rasterstats Python library.")
-   print("Check if rasterstats is installed.")
-
-try:
-   import shapefile
-except ImportError:
-   print("ERROR: Could not import PyShp Python library.")
-   print("Check if PyShp is installed.")
-
-try:
-   import pysptools.noise as ns
-except ImportError:
-   print("ERROR: Could not import Pysptools Python library.")
-   print("Check if Pysptools is installed.")
 
 ######################################
 # Data manipulation and transformation
@@ -67,6 +38,7 @@ class BrigthnessNormalization(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
         return self  # nothing else to do
     def transform(self, X, y=None):
+        import numpy as np
         # apply the normalization
         def norm(r):
             norm = r / np.sqrt( np.sum((r**2), 0) )
@@ -87,6 +59,10 @@ class MNF(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
         return self  # nothing else to do
     def transform(self, X, y=None):
+        import numpy as np
+        from sklearn.decomposition import PCA
+        import pysptools.noise as ns
+
         X = X.astype('float32')
         # apply brightness normalization
         # if raster
@@ -113,9 +89,77 @@ class MNF(BaseEstimator, TransformerMixin):
 
 ##########
 
+def GLCM(outRaster, sizeWindow):
+    """
+    Run the GLCM textures and append them into one 3D array
+    The "ndimage.generic_filter" funtion perform the moving window of size "window"
+    """
+    from skimage.feature import greycomatrix, greycoprops
+    from scipy import ndimage
+    from scipy.stats import entropy
+    import numpy as np
+
+    # prepare textures
+    def homogeneity_fun(outRaster):
+        """
+        create Homogeneity using the GLCM function 
+        of Skimage
+        """
+        if len(outRaster.shape) == 1:
+            outRaster = np.reshape(outRaster, (-1, sizeWindow))
+            
+        glcm = greycomatrix(outRaster, [1], [0], symmetric = True, normed = True)
+        return greycoprops(glcm, 'homogeneity')[0,0]
+        
+    def correlation_fun(outRaster):
+        """
+        create Correlation using the GLCM function 
+        of Skimage
+        """
+        if len(outRaster.shape) == 1:
+            outRaster = np.reshape(outRaster, (-1, sizeWindow))
+            
+        glcm = greycomatrix(outRaster, [1], [0], symmetric = True, normed = True)
+        return greycoprops(glcm, 'correlation')[0,0]
+    
+    def contrast_fun(outRaster):
+        """
+        create contrast using the GLCM function 
+        of Skimage
+        """
+        if len(outRaster.shape) == 1:
+            outRaster = np.reshape(outRaster, (-1, sizeWindow))
+            
+        glcm = greycomatrix(outRaster, [1], [0], symmetric = True, normed = True)
+        return greycoprops(glcm, 'contrast')[0,0]
+     
+    def  dissimilarity_fun(outRaster):
+        """
+        create dissimilarity_fun using the GLCM function 
+        of Skimage
+        """
+        if len(outRaster.shape) == 1:
+            outRaster = np.reshape(outRaster, (-1, sizeWindow))
+            
+        glcm = greycomatrix(outRaster, [1], [0], symmetric = True, normed = True)
+        return greycoprops(glcm, 'dissimilarity')[0,0]
+
+    # apply to moving window
+    Variance      = ndimage.generic_filter(outRaster, np.var, size=sizeWindow)
+    Contrast      = ndimage.generic_filter(outRaster, contrast_fun, size=sizeWindow)
+    Dissimilarity = ndimage.generic_filter(outRaster, dissimilarity_fun, size=sizeWindow)
+    Correlation   = ndimage.generic_filter(outRaster, correlation_fun, size=sizeWindow)
+    Homogeneity   = ndimage.generic_filter(outRaster, homogeneity_fun, size=sizeWindow)
+    Entropy       = ndimage.generic_filter(outRaster, entropy, size=sizeWindow)
+    
+    return np.dstack( (Variance, Contrast, Dissimilarity, Correlation, Homogeneity, Entropy) )
+
+###########
+
 def saveRaster(img, inputRaster, outputName):
     # Save created raster to TIFF
     # input img must be in (bands, row, column) shape
+    import rasterio
     new_dataset = rasterio.open(outputName, 'w', driver='GTiff',
                height=inputRaster.shape[0], width=inputRaster.shape[1],
                count=int(img.shape[0]), dtype=str(img.dtype),
@@ -143,6 +187,12 @@ def ExtractValues(raster, shp, func, ID):
     - nodata
     - percentile
     """
+    import numpy as np
+    import pandas as pd
+    import rasterio
+    from rasterstats import zonal_stats
+    import shapefile
+    
     # Raster management
     r = rasterio.open(raster)
     affine = r.affine 
@@ -185,6 +235,11 @@ def ExtractPointValues(raster, shp, ID):
     from rasterstats import point_query
     """ Extract raster values by a shapefile point mask.
     """
+    import numpy as np
+    import pandas as pd
+    import rasterio
+    import shapefile
+    
     # Raster management
     r = rasterio.open(raster)
     affine = r.affine 
