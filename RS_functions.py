@@ -308,7 +308,6 @@ def Cloudmetrics2Raster(lidar, input_shp, ID):
     # replece the column mane 'FileTitle' with the shapefile ID
     metrics = metrics.rename(columns = {'FileTitle' : ID})
     
-    
     ### merge the metrics with the shapefile
     r = r.merge(metrics, on=ID)
     out_shp = input_shp[:-4]+"_metrics.shp"
@@ -316,7 +315,7 @@ def Cloudmetrics2Raster(lidar, input_shp, ID):
     r.to_file(out_shp, driver='ESRI Shapefile')
     
     ### creating metric raster
-    # load the shapefile (important as the column amnes may have been shortened)
+    # load the shapefile (important as the column names may have been shortened)
     r = gpd.read_file(out_shp)
     names = r.columns[-39:] # get column names
     if 'geometry' in names:
