@@ -156,6 +156,87 @@ def GLCM(outRaster, sizeWindow):
 
 ###########
 
+def RunCanupo(inData, scales, step):
+    """
+    Run Canupo function for four non-systematic scales.
+    Then, transform the msc outputs to txt and rasterize it using LASTools
+    
+    Brodu, N. and Lague, D. (2012). 3D terrestrial lidar data classification of 
+    complex natural scenes using a multi-scale dimensionality criterion: 
+    Applications in geomorphology. ISPRS Journal of Photogrammetry and Remote
+    Sensing, vol. 68, p.121-134.
+    """
+    import os, glob, shutil
+    import numpy as np
+    from subprocess import call
+    
+    # check for the direction of LASTools and CANUPO in your PC
+    gdalDir = "C:/OSGeo4W64/bin/"
+    lastoolsDir = "C:/lastools/bin/"
+    
+    # create temporal folder
+    if not os.path.exists("tmp"):
+        os.makedirs("tmp")
+    
+    # scales
+    i0 = float(scales[0])
+    i2 = float(scales[1])
+    dif = float(scales[2])
+    
+    # run canupo
+    outName = "tmp/out.msc"
+    process = "canupo "+str(i0)+":"+str(dif)+":"+str(i2)+" : "+inData+" "+inData+" "+outName
+    call(process)
+
+    # msc2txt   
+    process = "msc_tool xyz "+outName+" : "+outName[:-4]+".txt"
+    call(process)
+
+    """
+    Reorder the outputs, separate the components, and rasterize them
+    Then, make a raster stack with the outputs
+    """
+    # variables to use
+    components = np.arange(i0, i2+(dif), dif)
+    N = len(components)
+    nonUsed = 3 + N*3
+    colList = range(nonUsed, nonUsed+N,1)
+    
+    # load original coordinated
+    df = np.loadtxt("tmp/out.txt", usecols=[0,1]) 
+    # load components   
+    df2 = np.loadtxt("tmp/out.txt", usecols=colList) 
+    # merge         
+    df3 = np.append(df, df2, axis=1)
+   
+    # loop through components
+    for i in range(N):    
+        # export results
+        out = df3[:, (0,1,i+2)]
+        outName = "tmp/"+inData[:-4]+"_comp_"+str(i+1)+".txt"
+        np.savetxt(outName, out)
+        # rasterize with lasgrid
+        process = lastoolsDir+"lasgrid.exe -i "+outName+" -o "+outName[:-4]+".tif -step "+str(step)+" -elevation -average"
+        call(process)
+        
+    # stack bands
+    outName = inData[:-4]+"_"+str(i0)+"_"+str(i2)+".tif"
+    tif_list = glob.glob("tmp/*.tif")
+    tif_list = " ".join(tif_list)
+    process = "python "+gdalDir+"gdal_merge.py -o "+outName+" "+tif_list+" -separate"
+    call(process)
+    
+    # return information of the created raster
+    call("gdalinfo " + outName)    
+    
+    # delate tables from memory
+    del df, df2, df3
+    
+    # erase temporal folder
+    shutil.rmtree("tmp")
+
+###############
+
 def saveRaster(img, inputRaster, outputName):
     # Save created raster to TIFF
     # input img must be in (bands, row, column) shape
