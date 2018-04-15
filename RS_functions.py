@@ -161,6 +161,10 @@ def RunCanupo(inData, scales, step):
     Run Canupo function for four non-systematic scales.
     Then, transform the msc outputs to txt and rasterize it using LASTools
     
+    - inData: text with the xyz LiDAR data
+    - scales: enter the start, end, and step for the scales
+    - resolution: resolution to export the rasters
+
     Brodu, N. and Lague, D. (2012). 3D terrestrial lidar data classification of 
     complex natural scenes using a multi-scale dimensionality criterion: 
     Applications in geomorphology. ISPRS Journal of Photogrammetry and Remote
@@ -236,6 +240,115 @@ def RunCanupo(inData, scales, step):
     shutil.rmtree("tmp")
 
 ###############
+
+def Cloudmetrics2Raster(lidar, input_shp, ID):
+    """
+    Rasterize a LiDAR metrics estimated by CloudMetrics-FUSION
+    It needs: the shapefile is a grid of polygons of the size of the raster pixel
+    
+    - lidar: point cloud information
+    - input_shp: shapefile with continuos grid of polygons with the output pixels
+    - ID: shapefile id name to use
+    
+    """
+    import os, glob, math, rasterio
+    from subprocess import call
+    import pandas as pd
+    import geopandas as gpd
+    from tqdm import tqdm
+    
+    ### path and name of the input shapefile
+    FusionDir = "C:/FUSION/"
+    lastoolsDir = "C:/lastools/bin/"
+    
+    ### load shapefile
+    r = gpd.read_file(input_shp)
+    crs = r.crs # get CRS
+    
+    # get the position of the ID column in the attribute table
+    idName = str
+    for i in range(len(r.columns)):
+        if r.columns[i] == ID:
+            idName = i
+            break
+        else:
+            continue
+    
+    # Get the ID values/names
+    GetIdNames = r[idName]
+    
+    # create a tamporal folder to store intermediate files
+    if not os.path.exists("FUSION_tmp"):
+        os.makedirs("FUSION_tmp")
+    
+    ### Create cloudmetric file
+    print("Creating Cloumetric file...")
+    for i in tqdm( range(len(r)) ):
+        outname = "FUSION_tmp/"+str(GetIdNames[i])
+        # Save each shapefile    
+        shape = r[i:(i+1)]
+        shape.to_file(outname + ".shp", driver='ESRI Shapefile')
+        # Cut the point cloud using lastools
+        process = lastoolsDir+"lasclip -i "+lidar+" -poly "+outname+".shp -o "+outname+".las" 
+        call(process)
+        # Create cloudmetrics for each .las file
+        process = FusionDir+"cloudmetrics "+outname+".las"+" Cloudmetrics.csv"
+        call(process)  
+        # delete files from memory
+        files = glob.glob('FUSION_tmp/*')
+        for f in files:
+            os.remove(f)  
+    print("Done!")
+    
+    ### Load the .csv file
+    columns = [1] + list(range(13, 51))
+    metrics = pd.read_csv("CloudMetrics.csv", usecols=columns)
+    # replace spaces by "_" in the columnames 
+    metrics.columns = metrics.columns.str.replace(" ", "_")
+    # replece the column mane 'FileTitle' with the shapefile ID
+    metrics = metrics.rename(columns = {'FileTitle' : ID})
+    
+    
+    ### merge the metrics with the shapefile
+    r = r.merge(metrics, on=ID)
+    out_shp = input_shp[:-4]+"_metrics.shp"
+    # save shapefile
+    r.to_file(out_shp, driver='ESRI Shapefile')
+    
+    ### creating metric raster
+    # load the shapefile (important as the column amnes may have been shortened)
+    r = gpd.read_file(out_shp)
+    names = r.columns[-39:] # get column names
+    if 'geometry' in names:
+        names = names[:-1]
+    pixel_size = pixel_size = math.sqrt(r.area[0]) # get pixel size
+    r.crs = crs # set CRS
+    
+    ### rasterize all metrics
+    print("Rasterizing the metrics...")
+    for i in tqdm( range(len(names)) ):
+        process = "gdal_rasterize -a "+names[i]+" -tr "+str(pixel_size)+" "+str(pixel_size)+" -l "+out_shp[:-4]+" "+out_shp+" "+"FUSION_tmp/"+names[i]+".tif"
+        call(process)  
+    print("Done!")
+    
+    ### Stack rasters
+    # Read metadata of first file
+    with rasterio.open("FUSION_tmp/"+names[0]+".tif") as src0:
+        meta = src0.meta
+    
+    # Update meta to reflect the number of layers
+    meta.update(count = len(names))
+    
+    # Read each layer and write it to stack
+    outName = input_shp[:-4]+"_metrics.tif"
+    with rasterio.open(outName, 'w', **meta) as dst:
+        for id, layer in enumerate(names):
+            with rasterio.open("FUSION_tmp/"+layer+".tif") as src1:
+                dst.write_band(id + 1, src1.read(1))
+
+##################
+
+
 
 def saveRaster(img, inputRaster, outputName):
     # Save created raster to TIFF
