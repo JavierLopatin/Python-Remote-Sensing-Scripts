@@ -277,3 +277,28 @@ def ExtractPointValues(raster, shp, ID):
     return df
 
 ##########
+
+def setBandName(inputFile, band, name):
+    """
+    A function to set the no data value
+    for each image band.
+    """
+    import osgeo.gdal as gdal
+    # Open the image file, in update mode
+    # so that the image can be edited. 
+    dataset = gdal.Open(inputFile, gdal.GA_Update)
+    # Check that the image  has been opened.
+    if not dataset is None:
+        # Get the image band
+        imgBand = dataset.GetRasterBand(band)
+        # Check the image band was available.
+        if not imgBand is None:
+            # Set the image band name.
+            imgBand.SetDescription(name)
+        else:
+            # Print out an error message.
+            print("Could not open the image band: ", band)
+    else:
+        # Print an error message if the file 
+        # could not be opened.
+        print("Could not open the input image file: ", inputFile)
