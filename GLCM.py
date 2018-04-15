@@ -40,11 +40,11 @@ except ImportError:
 #### Functions
 ################
 
-def read_raster(inputRaster):
+def read_raster(inRaster):
     """    
     Read image into Numpy Array
     """
-    img = rasterio.open(inputRaster)
+    img = rasterio.open(inRaster)
     raster = img.read()
    
    # transform to RGB intensity
@@ -80,63 +80,64 @@ def save_raster(array, inputRaster, size):
                crs=inputRaster.crs, transform=inputRaster.transform)
     new_dataset.write(array)
     new_dataset.close()
-  
-def homogeneity_fun(outRaster):
-    """
-    create Homogeneity using the GLCM function 
-    of Skimage
-    """
-    if len(outRaster.shape) == 1:
-        outRaster = np.reshape(outRaster, (-1, sizeWindow))
-        
-    glcm = greycomatrix(outRaster, [1], [0],  symmetric = True, normed = True)
-    return greycoprops(glcm, 'homogeneity').sum()
-    
-def correlation_fun(outRaster):
-    """
-    create Correlation using the GLCM function 
-    of Skimage
-    """
-    if len(outRaster.shape) == 1:
-        outRaster = np.reshape(outRaster, (-1, sizeWindow))
-        
-    glcm = greycomatrix(outRaster, [1], [0],  symmetric = True, normed = True)
-    return greycoprops(glcm, 'correlation').sum()
 
-def contrast_fun(outRaster):
+def GLCM(outRaster, sizeWindow):
     """
-    create contrast using the GLCM function 
-    of Skimage
-    """
-    if len(outRaster.shape) == 1:
-        outRaster = np.reshape(outRaster, (-1, sizeWindow))
-        
-    glcm = greycomatrix(outRaster, [1], [0],  symmetric = True, normed = True)
-    return greycoprops(glcm, 'contrast').sum()
- 
-def  dissimilarity_fun(outRaster):
-    """
-    create dissimilarity_fun using the GLCM function 
-    of Skimage
-    """
-    if len(outRaster.shape) == 1:
-        outRaster = np.reshape(outRaster, (-1, sizeWindow))
-        
-    glcm = greycomatrix(outRaster, [1], [0],  symmetric = True, normed = True)
-    return greycoprops(glcm, 'dissimilarity').sum()
-      
-def run_textures(outRaster, sizeWindow):
-    """
-    Run the GLCM textures and append them into one
-    3D array
+    Run the GLCM textures and append them into one 3D array
     The "ndimage.generic_filter" funtion perform the moving window of size "window"
     """
+    # prepare textures
+    def homogeneity_fun(outRaster):
+        """
+        create Homogeneity using the GLCM function 
+        of Skimage
+        """
+        if len(outRaster.shape) == 1:
+            outRaster = np.reshape(outRaster, (-1, sizeWindow))
+            
+        glcm = greycomatrix(outRaster, [1], [0], symmetric = True, normed = True)
+        return greycoprops(glcm, 'homogeneity')[0,0]
+        
+    def correlation_fun(outRaster):
+        """
+        create Correlation using the GLCM function 
+        of Skimage
+        """
+        if len(outRaster.shape) == 1:
+            outRaster = np.reshape(outRaster, (-1, sizeWindow))
+            
+        glcm = greycomatrix(outRaster, [1], [0], symmetric = True, normed = True)
+        return greycoprops(glcm, 'correlation')[0,0]
+    
+    def contrast_fun(outRaster):
+        """
+        create contrast using the GLCM function 
+        of Skimage
+        """
+        if len(outRaster.shape) == 1:
+            outRaster = np.reshape(outRaster, (-1, sizeWindow))
+            
+        glcm = greycomatrix(outRaster, [1], [0], symmetric = True, normed = True)
+        return greycoprops(glcm, 'contrast')[0,0]
+     
+    def  dissimilarity_fun(outRaster):
+        """
+        create dissimilarity_fun using the GLCM function 
+        of Skimage
+        """
+        if len(outRaster.shape) == 1:
+            outRaster = np.reshape(outRaster, (-1, sizeWindow))
+            
+        glcm = greycomatrix(outRaster, [1], [0], symmetric = True, normed = True)
+        return greycoprops(glcm, 'dissimilarity')[0,0]
+
+    # apply to moving window
     Variance      = ndimage.generic_filter(outRaster, np.var, size=sizeWindow)
     Contrast      = ndimage.generic_filter(outRaster, contrast_fun, size=sizeWindow)
     Dissimilarity = ndimage.generic_filter(outRaster, dissimilarity_fun, size=sizeWindow)
     Correlation   = ndimage.generic_filter(outRaster, correlation_fun, size=sizeWindow)
     Homogeneity   = ndimage.generic_filter(outRaster, homogeneity_fun, size=sizeWindow)
-    Entropy       = ndimage.generic_filter(outRaster, entropy, size=sizeWindow)  
+    Entropy       = ndimage.generic_filter(outRaster, entropy, size=sizeWindow)
     
     return np.dstack( (Variance, Contrast, Dissimilarity, Correlation, Homogeneity, Entropy) )
 
@@ -174,11 +175,9 @@ if __name__ == "__main__":
     if isinstance(window, list):
        for i in range(len(window)):
            sizeWindow = window[i]
-           GLCM = run_textures(raster, sizeWindow)
-           save_raster(GLCM, img, sizeWindow)
+           textures = GLCM(raster, sizeWindow)
+           save_raster(textures, img, sizeWindow)
     
     else: # otherwise is only one size
-        sizeWindow = window
-        GLCM = run_textures(raster, window)
-        save_raster(GLCM, img, window)
-
+        textures = GLCM(raster, window)
+        save_raster(textures, img, window)
