@@ -380,94 +380,58 @@ def ExtractValues(raster, shp, func, ID):
     - nodata
     - percentile
     """
+    import shapefile, rasterio
+    from rasterstats import point_query
     import numpy as np
-    import pandas as pd
-    import rasterio
-    from rasterstats import zonal_stats
-    import shapefile
-    
     # Raster management
     r = rasterio.open(raster)
     affine = r.affine 
-    array = r.read()
-    bands = array.shape[0]
+    bands = r.count
     bandNames = []
     for i in range(bands):
         a = "B" + str(i+1)
         bandNames.append(a)
     
-    # Shapefile management
-    shape = shapefile.Reader(shp)
-    records = pd.DataFrame(shape.records())
-    n = pd.DataFrame(shape.fields)[0].values.tolist().index(ID)
-    id = records[n-1]
-
     # empty matrix to store results
-    matrix = np.empty((len(records), bands+1), dtype=object)
-    matrix[:,0] = id
-    colnamesSHP = [ID]
-
-    # Final colnames
-    colNames = colnamesSHP + bandNames
+    matrix = np.empty((len(shapefile.Reader(shp).records()), bands))
 
     # Extract values
-    for i in range(bands):
+    for i in range(1, bands):
         # stats 
-        array = r.read(i+1)
+        array = r.read(i) # open one band at a time
         stats = zonal_stats(shp, array, affine=affine, stats=func)
-        x = pd.DataFrame(stats)
-        matrix[:,i+1] = x[func]
-    
-    # set the final data frame
-    df = pd.DataFrame(matrix, columns=colNames)
-    return df
+        matrix[:,i] = stats
+
+    return matrix
 
 ##########
 
-def ExtractPointValues(raster, shp, ID):
-    from rasterstats import point_query
+def ExtractPointValues(raster, shp):
     """ Extract raster values by a shapefile point mask.
     """
+    import shapefile, rasterio
+    from rasterstats import point_query
     import numpy as np
-    import pandas as pd
-    import rasterio
-    import shapefile
-    
     # Raster management
     r = rasterio.open(raster)
     affine = r.affine 
-    array = r.read()
-    bands = array.shape[0]
+    bands = r.count
     bandNames = []
     for i in range(bands):
         a = "B" + str(i+1)
         bandNames.append(a)
     
-    # Shapefile management
-    shape = shapefile.Reader(shp)
-    records = pd.DataFrame(shape.records())
-    n = pd.DataFrame(shape.fields)[0].values.tolist().index(ID)
-    id = records[n-1]
-
     # empty matrix to store results
-    matrix = np.empty((len(records), bands+1), dtype=object)
-    matrix[:,0] = id
-    colnamesSHP = [ID]
-
-    # Final colnames
-    colNames = colnamesSHP + bandNames
+    matrix = np.empty((len(shapefile.Reader(shp).records()), bands))
 
     # Extract values
-    for i in range(bands):
+    for i in range(1, bands):
         # stats 
-        array = r.read(i+1)
+        array = r.read(i) # open one band at a time
         stats = point_query(shp, array, affine=affine)
-        x = pd.DataFrame(stats)
-        matrix[:,i+1] = x[0]
-    
-    # set the final data frame
-    df = pd.DataFrame(matrix, columns=colNames)
-    return df
+        matrix[:,i] = stats
+
+    return matrix
 
 ##########
 
