@@ -381,7 +381,7 @@ def ExtractValues(raster, shp, func, ID):
     - percentile
     """
     import shapefile, rasterio
-    from rasterstats import point_query
+    from rasterstats import zonal_stats
     import numpy as np
     # Raster management
     r = rasterio.open(raster)
@@ -398,7 +398,7 @@ def ExtractValues(raster, shp, func, ID):
     # Extract values
     for i in range(1, bands):
         # stats 
-        array = r.read(i) # open one band at a time
+        array = r.read(i+1) # open one band at a time
         stats = zonal_stats(shp, array, affine=affine, stats=func)
         matrix[:,i] = stats
 
@@ -425,9 +425,9 @@ def ExtractPointValues(raster, shp):
     matrix = np.empty((len(shapefile.Reader(shp).records()), bands))
 
     # Extract values
-    for i in range(1, bands):
+    for i in range(bands):
         # stats 
-        array = r.read(i) # open one band at a time
+        array = r.read(i+1) # open one band at a time
         stats = point_query(shp, array, affine=affine)
         matrix[:,i] = stats
 
