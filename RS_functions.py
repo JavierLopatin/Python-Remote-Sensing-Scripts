@@ -33,18 +33,10 @@ class BrigthnessNormalization(BaseEstimator, TransformerMixin):
     Journal of Quantitative Spectroscopy and Radiative Transfer 111(12-13),
     1947–1957. 10.1016/j.jqsrt.2010.03.007
     """
-    def __init__(self, img = True):
-        self.img = img
     def fit(self, X, y=None):
         return self  # nothing else to do
     def transform(self, X, y=None):
-        import numpy as np
-        # apply the normalization
-        def norm(r):
-            norm = r / np.sqrt( np.sum((r**2), 0) )
-            return norm
-        bn = np.apply_along_axis(norm, 2, X)
-        return bn
+        return X/np.sqrt( np.sum((X**2), 0) ).astype('float32')
 
 ##########
 
