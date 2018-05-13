@@ -56,7 +56,7 @@ class BrigthnessNormalization(BaseEstimator, TransformerMixin):
             norm = r / np.sqrt( np.sum((r**2), 0) )
             return norm
         bn = np.apply_along_axis(norm, 2, X)
-        return bn
+        return bn.astype('float32')
 
 def saveRaster(img, inputRaster, outputName):
     # Save created raster to TIFF
