@@ -66,10 +66,8 @@ def ExtractValues(raster, shp, func, ID):
     Several statistics are allowed.
     """
     # Raster management
-    r = rasterio.open(raster)
-    affine = r.affine 
-    array = r.read()
-    bands = array.shape[0]
+    with rastererio.open(raster) as r:
+         bansd = r.count
     bandNames = []
     for i in range(bands):
         a = "B" + str(i+1)
@@ -92,8 +90,7 @@ def ExtractValues(raster, shp, func, ID):
     # Extract values
     for i in range(bands):
         # stats 
-        array = r.read(i+1)
-        stats = zonal_stats(shp, array, affine=affine, stats=func)
+        stats = zonal_stats(shp, raster, stats=func, band=i+1)
         x = pd.DataFrame(stats)
         matrix[:,i+1] = x[func]
     
@@ -106,10 +103,8 @@ def ExtractPointValues(raster, shp, ID):
     """ Extract raster values by a shapefile point mask.
     """
     # Raster management
-    r = rasterio.open(raster)
-    affine = r.affine 
-    array = r.read()
-    bands = array.shape[0]
+    with rastererio.open(raster) as r:
+         bansd = r.count
     bandNames = []
     for i in range(bands):
         a = "B" + str(i+1)
@@ -132,8 +127,7 @@ def ExtractPointValues(raster, shp, ID):
     # Extract values
     for i in range(bands):
         # stats 
-        array = r.read(i+1)
-        stats = point_query(shp, array, affine=affine)
+        stats = point_query(shp, array, band=i+1)
         x = pd.DataFrame(stats)
         matrix[:,i+1] = x[0]
     
