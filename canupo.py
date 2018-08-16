@@ -1,8 +1,8 @@
 #! /usr/bin/env python
 
 """
-Python script to perform and rastirize the Canupo funtion over LiDAR data
-and rasterize outputs
+Python script to perform the Canupo funtion over a point cloud text data
+and rasterize the outputs using LASTools
 
 Usage:
 
