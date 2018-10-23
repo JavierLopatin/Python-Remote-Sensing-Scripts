@@ -3,7 +3,7 @@
 """
 Dissolve all vector fields
 
-Usage: python Dissolve_all.py vector.shp
+Usage: python Dissolve_all.py -i vector.shp
 
 @author: javier
 """
