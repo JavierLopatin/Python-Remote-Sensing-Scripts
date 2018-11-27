@@ -7,7 +7,7 @@ Usage: python clip.py -r raster.tif -s shapefile.shp
 
 Created on Tue Oct 23 16:32:37 2018
 
-@author: Javier Lopatin
+@author: Javier Lopatin | javier.lopatin@kit.edu
 """
 
 import rasterio, rasterio.mask, argparse
@@ -15,7 +15,7 @@ import rasterio, rasterio.mask, argparse
 # create the arguments for the algorithm
 parser = argparse.ArgumentParser()
 
-# set arguments   
+# set arguments
 parser.add_argument('-r','--inputRaster', help='Input raster', type=str, required=True)
 parser.add_argument('-v','--inputVector', help='Input raster', type=str, required=True)
 parser.add_argument('--version', action='version', version='%(prog)s 1.0')
