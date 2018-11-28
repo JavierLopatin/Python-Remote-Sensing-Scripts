@@ -34,8 +34,8 @@ eliminate = args["Eliminate"]
 # read vector file
 vector = gpd.read_file(shp)
 # if elimination of small attributes is True:
-print('Eliminating small objects...')
 if (eliminate == True):
+    print('Eliminating small objects...')
     mask = vector.area > eliminate
     vector = vector.loc[mask]
 # perform dissolve
