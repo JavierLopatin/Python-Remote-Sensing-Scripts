@@ -1,7 +1,7 @@
 
 # Python-Remote-Sensing-Scripts
 
-## A set of python scripts for remote sensing processing
+## A set of python scripts for remote sensing processing. All functions were created using Python 3.6
 
 ### As an example, I will use a UAV-based hyperspectral image of a peatland in central-south Chile. The image have 41 bands (10 nm width) ranging form 480-880 nm and a pixel size of 10 cm. The green dots correspond to plots where measurements of biomass, species composition and carbon stock information were taken:
 
@@ -13,7 +13,7 @@
 python ExtractValues.py -r peatland.tif -s plots.shp -i ID
 ```
 
-### Check output
+### Check out the output
 
 <div>
 
@@ -172,7 +172,7 @@ python ExtractValues.py -r peatland.tif -s plots.shp -i ID
  ### You can also perform a MNF transformation of the data. This function have several options, like applying Savitzky Golay filtering and brightness normalization of the spectra. The basic function is like (image resample to 2m in the example):
 
 ```terminal
-python MNF.py -i peatland.tif 
+python MNF.py -i peatland.tif
 ```
 
 ![alt text](/README/MNF.png)
@@ -180,15 +180,15 @@ python MNF.py -i peatland.tif
 ### Get the Gray-Level Co-Occurrence Matrix (GLCM) textures from an image. Here, we used the first MNF component as raster imput with a moving window of 5 X 5 pixels (default):
 
 ```terminal
-python GLCM.py -i peatland_MNF.tif  
+python GLCM.py -i peatland_MNF.tif
 ```
 
 ![alt text](/README/GLCM.png)
 
-### Finally, we can also obtain texture information from point clouds (in this case based in the UAV photogrametric point cloud) based on the Canupo algorithm proposed by [This paper](https://www.sciencedirect.com/science/article/pii/S0924271612000330), which is also implemented in the [CloudCompare](http://www.danielgm.net/cc/) LiDAR software. Nevertheless, both the paper and the software implement the transformation to generate poin-based classification while this python script produces texture rasters to be use in any application: 
+### Finally, we can also obtain texture information from point clouds (in this case based in the UAV photogrametric point cloud) based on the Canupo algorithm proposed by [This paper](https://www.sciencedirect.com/science/article/pii/S0924271612000330), which is also implemented in the [CloudCompare](http://www.danielgm.net/cc/) LiDAR software. Nevertheless, both the paper and the software implement the transformation to generate poin-based classification while this python script produces texture rasters to be use in any application:
 
 ```terminal
-python canupo.py -i lidar.txt -s 1 5 1 -r 1 
+python canupo.py -i lidar.txt -s 1 5 1 -r 1
 # scales: 1,2,3,4,5 m; output resolution 1 m
 ```
 
