@@ -262,6 +262,3 @@ if __name__ == "__main__":
     # KMeans with brightness normalization and PCA transformaiton
     kmeans4 = run_Kmeans(raster, bnorm=True, pca=True)
     plot_image(kmeans4)
-
-
-cp = require('child_process')
