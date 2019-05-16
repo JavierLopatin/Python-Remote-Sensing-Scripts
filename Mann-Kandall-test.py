@@ -9,6 +9,7 @@
 ################################################################################
 
 import numpy as np
+from scipy import stats
 
 def mk_test(x, alpha=0.05):
 
@@ -40,7 +41,7 @@ def mk_test(x, alpha=0.05):
         z = (s + 1) / np.sqrt(var_s)
 
     # calculate the p_value
-    p = 2 * (1 - scipy.stats.norm.cdf(abs(z)))  # two tail test
-    h = abs(z) > scipy.stats.norm.ppf(1 - alpha / 2)
+    p = 2 * (1 - stats.norm.cdf(abs(z)))  # two tail test
+    h = abs(z) > stats.norm.ppf(1 - alpha / 2)
 
     return h, p
