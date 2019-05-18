@@ -25,7 +25,7 @@
  The program is based in a scripts obtained at: https://www.uni-goettingen.de/en/524376.html
  I addapted the program to read big raster images in chuncks (blocks) of small
  size to keep the CPU mamory low. Plus, parallel processing is implemented,
- improving speed ~ x4 when using 4 cores. 
+ improving speed ~ x4 when using 4 cores.
 
 '''
 ################################################################################
@@ -49,7 +49,7 @@ def mk_test(x, alpha=0.05):
     '''
     n = len(x)
     # calculate S
-    listMa = np.matrix(x) # convert input List to 1D matrix
+    listMa = np.matrix(x)  # convert input List to 1D matrix
 
     # calculate all possible differences in matrix
     subMa = np.sign(listMa.T - listMa)
@@ -83,18 +83,19 @@ def mk_test(x, alpha=0.05):
 
     return h, p
 
+
 def TSA(dstack):
     '''Function that calculates linear regression and Mann-Kendall-pValue coefficients
     for each raster pixel against continous time steps.
     Input must be an array with shape [rows, columns, bands] or a string with the
     full path to the file.
-    Benchmark: a time series of 15 rasters, with each having 321x161 pix (51681), the entire process takes
-    about 19.1 seconds in total, with 5.8s for linReg and 13.2s for MK '''
+    '''
+    # if funciton called from terminal:
+    if __name__ == "__main__":
+        # get to (raw, column, band) shape
+        dstack = np.transpose(dstack, [1, 2, 0])
 
-    # get to (raw, column, band) shape
-    dstack = np.transpose(dstack, [1,2,0])
-
-    #equally spaced time steps by length of inList
+    # equally spaced time steps by length of inList
     timeList = np.asarray(list(range(len(dstack))))
     stepLen = len(dstack)
 
@@ -116,15 +117,17 @@ def TSA(dstack):
     # lambda function is a small anonymous function. Can have many arguments, but one expression
     # lambda arguments : expression
     # Method is about 10% faster than using 2 for-loops (one for x- and y-axis)
+    # lineral tendency
     outListReg = list(
         map((lambda x: stats.linregress(timeList, x)), dstackList))
+    # Mann-Kandel Test
     outListMK = list(map((lambda x: mk_test(x)), dstackList))
 
     for k in range(len(outListReg)):
-        slopeAr[k]  = outListReg[k][0]
+        slopeAr[k] = outListReg[k][0]
         intcptAr[k] = outListReg[k][1]
-        rvalAr[k]   = outListReg[k][2]
-        pvalAr[k]   = outListReg[k][3]
+        rvalAr[k] = outListReg[k][2]
+        pvalAr[k] = outListReg[k][3]
         stderrAr[k] = outListReg[k][4]
 
         mkPAr[k] = outListMK[k][1]
@@ -137,14 +140,17 @@ def TSA(dstack):
                 stderrAr.reshape(outShape),
                 mkPAr.reshape(outShape))
 
-    outStack = np.dstack(outTuple) # stack results
-    outStack = np.transpose(outStack, [2,0,1]) # get to (band, raw, column) shape
+    outStack = np.dstack(outTuple)  # stack results
+    # get to (band, raw, column) shape
+    outStack = np.transpose(outStack, [2, 0, 1])
 
     return outStack
 
+
 def main(infile, outfile, n_jobs=4):
     """
-    Process infile block-by-block and write to a new file
+    Process infile block-by-block with parallel processing
+    and write to a new file.
     """
 
     with rasterio.Env():
@@ -155,7 +161,8 @@ def main(infile, outfile, n_jobs=4):
             # destination will be tiled, and we'll process the tiles
             # concurrently.
             profile = src.profile
-            profile.update(blockxsize=128, blockysize=128, count=6, dtype='float64', tiled=True)
+            profile.update(blockxsize=128, blockysize=128,
+                           count=6, dtype='float64', tiled=True)
 
             with rasterio.open(outfile, "w", **profile) as dst:
 
@@ -183,16 +190,16 @@ def main(infile, outfile, n_jobs=4):
                         dst.write(result, window=window)
 
 
-
 if __name__ == "__main__":
 
     import argparse
 
-    parser = argparse.ArgumentParser(description="Time Series analysis with Concurrent raster processing")
-    parser.add_argument('-i','--inputImage',
-      help='Input raster with yearly time series', type=str)
-    parser.add_argument('-o','--outputImage',
-      help='Output raster with trend analysis', type=str)
+    parser = argparse.ArgumentParser(
+        description="Time Series analysis with parallel raster processing")
+    parser.add_argument('-i', '--inputImage',
+                        help='Input raster with yearly time series', type=str)
+    parser.add_argument('-o', '--outputImage',
+                        help='Output raster with trend analysis', type=str)
     parser.add_argument(
         "-j",
         metavar="NUM_JOBS",
