@@ -40,7 +40,7 @@ import concurrent.futures
 #####################################################
 
 
-def mk_test(x, alpha=0.05):
+def mk_test(x, alpha):
     '''
     Mann-Kendall-Test
     Originally from: http://www.ambhas.com/codes/statlib.py
@@ -147,11 +147,33 @@ def TSA(dstack):
     return outStack
 
 
-def main(infile, outfile, n_jobs=4):
+def single_process(infile, outfile):
+    '''
+    Process infile in one-step. Use this with small
+    raster images (low memory use).
+    '''
+
+    # open infile and change metadata
+    with rasterio.open(infile) as src:
+        profile = src.profile
+        profile.update(count=6, dtype='float64')
+        dstack = src.read()
+
+    # fun TSA
+    tsa = TSA(dstack)
+
+    # save results
+    with rasterio.open(outfile, "w", **profile) as dst:
+        dst.write(tsa)
+
+
+
+def parallel_process(infile, outfile, n_jobs):
     """
     Process infile block-by-block with parallel processing
     and write to a new file.
     """
+    from tqdm import tqdm # progress bar
 
     with rasterio.Env():
 
@@ -185,10 +207,26 @@ def main(infile, outfile, n_jobs=4):
                     # the windows list, and as pairs come back we
                     # write data to the destination dataset.
                     for window, result in zip(
-                        windows, executor.map(TSA, data_gen)
+                        tqdm(windows), executor.map(TSA, data_gen)
                     ):
                         dst.write(result, window=window)
+def main(infile, outfile, n_jobs):
+    '''
+    Check for the size of infile. if file is below 16384 observation [128 X 128].
+    If below, use single_process; if above use parallel_process.
+    '''
+    with rasterio.open(infile) as src:
+        width = src.width
+        height = src.height
 
+        if width*height <= 250000:
+            single_process(infile, outfile)
+        else:
+            parallel_process(infile, outfile, n_jobs)
+
+
+
+    #infile='/home/javier/Documents/SF_delta/Sentinel/TSA/test_year.tif'
 
 if __name__ == "__main__":
 
@@ -200,6 +238,8 @@ if __name__ == "__main__":
                         help='Input raster with yearly time series', type=str)
     parser.add_argument('-o', '--outputImage',
                         help='Output raster with trend analysis', type=str)
+    parser.add_argument('-a', '--alpha',
+                        help='Alpha level of significance for Mann-Kandel [default = 0.05]', type=float, default=0.05)
     parser.add_argument(
         "-j",
         metavar="NUM_JOBS",
