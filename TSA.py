@@ -24,8 +24,8 @@
 
  The program is based in a scripts obtained at: https://www.uni-goettingen.de/en/524376.html
  I addapted the program to read big raster images in chuncks (blocks) of small
- size to keep the CPU mamory low. Plus, parallel processing is implemented,
- improving speed ~ x4 when using 4 cores.
+ size to keep the CPU mamory low. Plus, parallel processing is implemented.
+ Speed if up to X20 tomes faster than the original script when using 4 cores.
 
 '''
 ################################################################################
@@ -39,8 +39,7 @@ import concurrent.futures
 ################## FUNCTIONS ########################
 #####################################################
 
-
-def mk_test(x, alpha):
+def mk_test(x, alpha=0.05):
     '''
     Mann-Kendall-Test
     Originally from: http://www.ambhas.com/codes/statlib.py
