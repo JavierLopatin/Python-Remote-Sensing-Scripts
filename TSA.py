@@ -8,9 +8,9 @@
  Available estimates include linear tendency and Mann-Kandel Test
 
  @Author: Javier Lopatin
- @ Email: javierlopatin@gmail.com
- @ Last revision: 18/05/2019
- @ Version: 1.0
+ @Email: javierlopatin@gmail.com
+ @Last revision: 18/05/2019
+ @Version: 1.0
 
  Usage:
 
@@ -22,15 +22,14 @@
 
  python TSA.py -i NDVI_timeSeries.tif -o Trends.tif -j 6
 
- The program is based in a scripts obtained at: https://www.uni-goettingen.de/en/524376.html
+ The program is based in a scripts obtained at: https://www.uni-goettingen.de/en/524375.html
  I addapted the program to read big raster images in chuncks (blocks) of small
  size to keep the CPU mamory low. Plus, parallel processing is implemented.
- Speed if up to X20 tomes faster than the original script when using 4 cores.
 
 '''
 ################################################################################
 
-import rasterio
+import rasterio#, riomucho
 import numpy as np
 from scipy import stats
 import concurrent.futures
@@ -209,6 +208,8 @@ def parallel_process(infile, outfile, n_jobs):
                         tqdm(windows), executor.map(TSA, data_gen)
                     ):
                         dst.write(result, window=window)
+
+
 def main(infile, outfile, n_jobs):
     '''
     Check for the size of infile. if file is below 16384 observation [128 X 128].
@@ -237,8 +238,8 @@ if __name__ == "__main__":
                         help='Input raster with yearly time series', type=str)
     parser.add_argument('-o', '--outputImage',
                         help='Output raster with trend analysis', type=str)
-    parser.add_argument('-a', '--alpha',
-                        help='Alpha level of significance for Mann-Kandel [default = 0.05]', type=float, default=0.05)
+    #parser.add_argument('-a', '--alpha',
+    #                    help='Alpha level of significance for Mann-Kandel [default = 0.05]', type=float, default=0.05)
     parser.add_argument(
         "-j",
         metavar="NUM_JOBS",
@@ -249,3 +250,30 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(args.inputImage, args.outputImage, args.j)
+
+
+
+'''infile='/home/javier/Documents/SF_delta/Sentinel/TSA/X-004_Y-001/2015-2019_001-365_LEVEL4_TSA_SEN2L_EVI_C0_S0_FAVG_TY_C95T_FBY.tif'
+outfile=infile[:-4]+'_TSA.tif'
+len(windows)
+# get windows from an input
+with rasterio.open(infile) as src:
+    ## grabbing the windows as an example. Default behavior is identical.
+    windows = [[window, ij] for ij, window in src.block_windows()]
+    options = src.meta
+    # since we are only writing to 2 bands
+    options.update(count=6)
+
+global_args = {
+    'divide': 2
+}
+
+processes = 4
+
+# run it
+with riomucho.RioMucho(['input1.tif','input2.tif'], 'output.tif', TSA,
+    windows=windows,
+    global_args=global_args,
+    options=options) as rm:
+
+    rm.run(processes)'''
