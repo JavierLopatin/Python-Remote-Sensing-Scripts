@@ -4,7 +4,7 @@
 #
 # ExtractValues.py
 #
-# A python script to extract raster values using a shapefile. 
+# A python script to extract raster values using a shapefile.
 # Results are stored in a CSV file
 #
 # Author: Javier Lopatin
@@ -29,14 +29,14 @@
 #
 # Usage:
 #
-# python ExtractValues.py -r <Imput raster> -s <Imput shapefile> 
+# python ExtractValues.py -r <Imput raster> -s <Imput shapefile>
 #                         -i <Imput function> -s <Shapefile ID> -p <If shp are points>
 #
 #  Examples for polygon shapefile: python ExtractValues.py -r raster.tif -s shape.shp -i ID
 #                                  python ExtractValues.py -r raster.tif -s shape.shp -f median -i ID
 #
 #  Examples for points shapefile: python ExtractValues.py -r raster.tif -s shape.shp -i ID -p
-#                
+#
 ########################################################################################################
 
 import os, argparse, sys
@@ -66,13 +66,13 @@ def ExtractValues(raster, shp, func, ID):
     Several statistics are allowed.
     """
     # Raster management
-    with rastererio.open(raster) as r:
-         bansd = r.count
+    with rasterio.open(raster) as r:
+         bands = r.count
     bandNames = []
     for i in range(bands):
         a = "B" + str(i+1)
         bandNames.append(a)
-    
+
     # Shapefile management
     shape = shapefile.Reader(shp)
     records = pd.DataFrame(shape.records())
@@ -89,11 +89,11 @@ def ExtractValues(raster, shp, func, ID):
 
     # Extract values
     for i in range(bands):
-        # stats 
+        # stats
         stats = zonal_stats(shp, raster, stats=func, band=i+1)
         x = pd.DataFrame(stats)
         matrix[:,i+1] = x[func]
-    
+
     # set the final data frame
     df = pd.DataFrame(matrix, columns=colNames)
     return df
@@ -103,13 +103,13 @@ def ExtractPointValues(raster, shp, ID):
     """ Extract raster values by a shapefile point mask.
     """
     # Raster management
-    with rastererio.open(raster) as r:
-         bansd = r.count
+    with rasterio.open(raster) as r:
+         bands = r.count
     bandNames = []
     for i in range(bands):
         a = "B" + str(i+1)
         bandNames.append(a)
-    
+
     # Shapefile management
     shape = shapefile.Reader(shp)
     records = pd.DataFrame(shape.records())
@@ -126,11 +126,11 @@ def ExtractPointValues(raster, shp, ID):
 
     # Extract values
     for i in range(bands):
-        # stats 
-        stats = point_query(shp, array, band=i+1)
+        # stats
+        stats = point_query(shp, raster, band=i+1)
         x = pd.DataFrame(stats)
         matrix[:,i+1] = x[0]
-    
+
     # set the final data frame
     df = pd.DataFrame(matrix, columns=colNames)
     return df
@@ -140,11 +140,11 @@ if __name__ == "__main__":
 
     # create the arguments for the algorithm
     parser = argparse.ArgumentParser()
-    parser.add_argument('-r','--raster', help='Input raster', type=str)   
+    parser.add_argument('-r','--raster', help='Input raster', type=str)
     parser.add_argument('-s', '--shapefile', help='Input shapefile', type=str)
     parser.add_argument('-f', '--function', help='Input function to extract [default = "mean"]', type=str, default="mean")
     parser.add_argument('-i', '--id', help='Shapefile ID to store in the CSV', type=str)
-    parser.add_argument('-p','--points', help='Shapefile are points',  action="store_true", default=False)   
+    parser.add_argument('-p','--points', help='Shapefile are points',  action="store_true", default=False)
     parser.add_argument('--version', action='version', version='%(prog)s 1.0')
     args = vars(parser.parse_args())
 
@@ -153,7 +153,7 @@ if __name__ == "__main__":
     shp    = args['shapefile']
     ID     = args['id']
     func   = args['function']
-    
+
     # Check that the input parameter has been specified.
     if args['raster'] == None:
        # Print an error message if not and exit.
@@ -169,19 +169,20 @@ if __name__ == "__main__":
        # Print an error message if not and exit.
        print("Error: No input id provided.")
        sys.exit()
-    
+
     if args['points']==True:
         if args['function'] == None:
            # Print an error message if not and exit.
-           print("Error: No extracting function provided.")           
+           print("Error: No extracting function provided.")
            sys.exit()
-        
+
         df = ExtractPointValues(raster, shp, ID)
     else:
         df = ExtractValues(raster, shp, func, ID)
 
     # Save to CSV file
     name = os.path.basename(raster)
-    df.to_csv(name[:-4] + ".csv", index=False, header=True, na_rep='NA') 
+    df.to_csv(name[:-4] + ".csv", index=False, header=True, na_rep='NA')
+
 
 
