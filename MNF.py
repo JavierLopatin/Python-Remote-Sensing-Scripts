@@ -1,11 +1,12 @@
-#! /usr/bin/env python
+#!/usr/bin/python
+# -*- coding: latin-1 -*-
 
 ########################################################################################################################
 #
 # MNF.py
 # A python script to perform MNF transformation to remote sesning data.
 #
-# Info: The script perform MNF transformation to all raster images stored in a folder. 
+# Info: The script perform MNF transformation to all raster images stored in a folder.
 #
 # Author: Javier Lopatin
 # Email: javierlopatin@gmail.com
@@ -14,21 +15,21 @@
 #
 # Usage:
 #
-# python MNF.py -i <Imput raster> 
-#               -c <Number of components [default = inputRaster bands]> 
-#               -p <Preprocessing: Brightness Normalization of Hyperspectral data [Optional]> 
+# python MNF.py -i <Imput raster>
+#               -c <Number of components [default = inputRaster bands]>
+#               -p <Preprocessing: Brightness Normalization of Hyperspectral data [Optional]>
 #               -s <Apply Savitzky Golay filtering [Optional]>
-#            
+#
 # # --preprop [-p]: Brightness Normalization presented in Feilhauer et al., 2010
 #
-# # examples:   
+# # examples:
 #             # Get the regular MNF transformation
 #             python MNF.py -i raster
 #
 #             # with Brightness Normalization
 #             python MNF_cmd.py -i raster -p
 #
-# 
+#
 #
 # Bibliography:
 #
@@ -36,7 +37,7 @@
 # Regression for hyperspectral data. Journal of Quantitative Spectroscopy and Radiative Transfer 111(12-13),
 # pp. 1947–1957. 10.1016/j.jqsrt.2010.03.007
 #
-# C-I Change and Q Du. 1999. Interference and Noise-Adjusted Principal Components Analysis. 
+# C-I Change and Q Du. 1999. Interference and Noise-Adjusted Principal Components Analysis.
 # IEEE TGRS, Vol 36, No 5.
 #
 ########################################################################################################################
@@ -60,7 +61,7 @@ except ImportError:
    print("Check if Pysptools is installed.")
 
 ################
-### Functions 
+### Functions
 ################
 
 
@@ -101,8 +102,8 @@ class MNF(BaseEstimator, TransformerMixin):
 
 def saveMNF(img, inputRaster):
     # Save TIF image to a nre directory of name MNF
-    img2 = np.transpose(img, [2,0,1]) # get to (band, raw, column) shape 
-    output = outMNF 
+    img2 = np.transpose(img, [2,0,1]) # get to (band, raw, column) shape
+    output = outMNF
     if args["preprop"]==True:
         output = output[:-4] + "_BN.tif"
     new_dataset = rasterio.open(output , 'w', driver='GTiff',
@@ -113,40 +114,41 @@ def saveMNF(img, inputRaster):
     new_dataset.close()
 
 ### Run process
-        
+
 if __name__ == "__main__":
-    
+
     # create the arguments for the algorithm
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-i','--inputRaster', 
+    parser.add_argument('-i','--inputRaster',
       help='Input raster', type=str, required=True)
-    parser.add_argument('-c','--components', 
+    parser.add_argument('-c','--components',
       help='Number of components.', type=int, default=False)
-    parser.add_argument('-p','--preprop', 
-      help='Preprocessing: Brightness Normalization of Hyperspectral data [Optional].', 
+    parser.add_argument('-p','--preprop',
+      help='Preprocessing: Brightness Normalization of Hyperspectral data [Optional].',
       action="store_true", default=False)
-    parser.add_argument('-s','--SavitzkyGolay', 
+    parser.add_argument('-s','--SavitzkyGolay',
       help='Apply Savitzky Golay filtering [Optional].',  action="store_true", default=False)
-        
+
     parser.add_argument('--version', action='version', version='%(prog)s 1.0')
     args = vars(parser.parse_args())
-     
+
     # data imputps/outputs
     inRaster = args["inputRaster"]
     outMNF = inRaster[:-4] + "_MNF.tif"
-    
+
     # load raster
-    r = rasterio.open(inRaster)
-    r2 = r.read() # transform to array
-    
+    with rasterio.open(inRaster) as r:
+        r2 = r.read() # transform to array
+
     # set number of components to retrive
     if args["components"] is not None:
         n_components = args['components']
     else:
         n_components = r2.shape[0]
-        
-    img = np.transpose(r2, [1,2,0]) # get to (raw, column, band) shape 
+
+    img = np.transpose(r2, [1,2,0]) # get to (raw, column, band) shape
+    
     #############
     ### Apply MNF
     # Apply Brightness Normalization if the option -p is added
@@ -163,9 +165,9 @@ if __name__ == "__main__":
         mnf, var = model.fit_transform(img)
         print("The accumulative explained variance per component is:")
         print(var)
-   
+
     # save the MNF image and explained variance
-    saveMNF(mnf, r) 
+    saveMNF(mnf, r)
     bandNames = []
     for i in range(mnf.shape[2]):
         a = "MNF" + str(i+1)
@@ -174,4 +176,4 @@ if __name__ == "__main__":
     variance = pd.DataFrame(var)
     txtOut = pd.concat([bandNames, variance], axis=1)
     txtOut.columns=["Bands", "AccVariance"]
-    txtOut.to_csv(outMNF[:-4] + ".csv", index=False, header=True, na_rep='NA') 
+    txtOut.to_csv(outMNF[:-4] + ".csv", index=False, header=True, na_rep='NA')
