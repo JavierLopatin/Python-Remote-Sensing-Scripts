@@ -166,7 +166,7 @@ def single_process(infile, outfile):
 
 
 
-def parallel_process(infile, outfile, n_jobs):
+def parallel_process(infile, outfile, n_jobs, chunckSize):
     """
     Process infile block-by-block with parallel processing
     and write to a new file.
@@ -181,7 +181,7 @@ def parallel_process(infile, outfile, n_jobs):
             # destination will be tiled, and we'll process the tiles
             # concurrently.
             profile = src.profile
-            profile.update(blockxsize=128, blockysize=128,
+            profile.update(blockxsize=chunckSize, blockysize=chunckSize,
                            count=6, dtype='float64', tiled=True)
 
             with rasterio.open(outfile, "w", **profile) as dst:
@@ -238,18 +238,16 @@ if __name__ == "__main__":
                         help='Input raster with yearly time series', type=str)
     parser.add_argument('-o', '--outputImage',
                         help='Output raster with trend analysis', type=str)
+    parser.add_argument('-c', '--chunckSize',
+                        help='ChunckSize of the parallel processin. Needs to be multiple of 16', type=int)
     #parser.add_argument('-a', '--alpha',
     #                    help='Alpha level of significance for Mann-Kandel [default = 0.05]', type=float, default=0.05)
-    parser.add_argument(
-        "-j",
-        metavar="NUM_JOBS",
-        type=int,
-        default=4,
-        help="Number of concurrent jobs [default = all available]",
-    )
+    parser.add_argument("-j", "--n_jobs", type=int, default=4,
+        help="Number of concurrent jobs [default = all available]")
+
     args = parser.parse_args()
 
-    main(args.inputImage, args.outputImage, args.j)
+    main(args.inputImage, args.outputImage, args.j args.c)
 
 
 
