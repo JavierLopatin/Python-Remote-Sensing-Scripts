@@ -20,14 +20,16 @@ import geopandas as gpd
 parser = argparse.ArgumentParser()
 
 # set arguments
-parser.add_argument('-i','--inputVector', help='Input raster', type=str, required=True)
-parser.add_argument('-a','--Attribute', help='Attribute to use', type=str, required=True)
-parser.add_argument('-e','--Eliminate', help='Eliminate objects bellow size (square meters)', type=int, required=False)
+parser.add_argument('-i', '--inputShapefile', help='Input shapefile', type=str, required=True)
+parser.add_argument('-a', '--Attribute', help='Attribute to use for dissolve',
+                    type=str, required=True)
+parser.add_argument('-e', '--Eliminate',
+                    help='Eliminate objects bellow size (square meters)', type=int, required=False)
 parser.add_argument('--version', action='version', version='%(prog)s 1.0')
 args = vars(parser.parse_args())
 
 # set argument
-shp = args["inputVector"]
+shp = args["inputShapefile"]
 attribute = args["Attribute"]
 eliminate = args["Eliminate"]
 
@@ -40,7 +42,8 @@ if (eliminate == True):
     vector = vector.loc[mask]
 # perform dissolve
 print("Dissolving vector file...")
-vector = vector.dissolve(by = attribute)
+diss = vector[[attribute, 'geometry']]
+diss = diss.dissolve(by=attribute)
 # save new vector
-vector.to_file(shp[:-4] + "_diss.shp")
+vector.to_file(shp[:-4] + "_" + attribute + ".shp")
 print("Done!")
