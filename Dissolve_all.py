@@ -14,13 +14,13 @@ import geopandas as gpd
 # create the arguments for the algorithm
 parser = argparse.ArgumentParser()
 
-# set arguments   
-parser.add_argument('-i','--inputVector', help='Input raster', type=str, required=True)
+# set arguments
+parser.add_argument('-i','--inputShapefile', help='Input shapefile', type=str, required=True)
 parser.add_argument('--version', action='version', version='%(prog)s 1.0')
 args = vars(parser.parse_args())
 
 # set argument
-shp = args["inputVector"]
+shp = args["inputShapefile"]
 
 # read vector file
 vector = gpd.read_file(shp)
