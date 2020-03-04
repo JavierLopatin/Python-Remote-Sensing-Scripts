@@ -15,5 +15,6 @@ tasseled_cap = vi.tasseled_cap_transformation(image)
 tasseled_cap.bandNames().getInfo()
 
 # Display result
-thumbnail = tasseled_cap.getThumbUrl({'min': -1, 'max': 1, 'region': region})
+thumbnail = tasseled_cap.getThumbUrl({'min': -1, 'max': 1, 'region': region,
+    'bands': 'brightness,fourth,sixth'}) # default RGB always b1,b2,b3
 Image(url=thumbnail)
