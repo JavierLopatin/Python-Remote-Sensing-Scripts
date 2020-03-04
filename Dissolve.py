@@ -44,6 +44,6 @@ if (eliminate == True):
 print("Dissolving vector file...")
 diss = vector[[attribute, 'geometry']]
 diss = diss.dissolve(by=attribute)
-# save new vector
-vector.to_file(shp[:-4] + "_" + attribute + ".shp")
+# save new vector; reset_index is needed to save the names of the 'attribite' column
+diss.reset_index().to_file(shp[:-4] + "_" + attribute + ".shp")
 print("Done!")
