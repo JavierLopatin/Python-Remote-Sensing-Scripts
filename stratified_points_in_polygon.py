@@ -15,7 +15,7 @@ from joblib import Parallel, delayed
 from tqdm import tqdm  # just for nice visualization
 
 
-def random_points_in_polygon(shp, number=100, dist=10, maxiter=1000):
+def random_points_in_polygon(shp, number=100, dist=10, maxiter=1000, n_jobs=8):
     '''
     Generate random points inside polygons
 
@@ -33,22 +33,22 @@ def random_points_in_polygon(shp, number=100, dist=10, maxiter=1000):
             does not hold the selected 'number' of points due to 'dist'
 
     '''
-    def _my_function(polygon):
-        # ansilary funciton to pass to the Processing funciton
+    def my_function(polygon):
         points = []
         min_x, min_y, max_x, max_y = polygon.bounds
         i = 0
-        while i < number:
-            point = Point(np.random.uniform(min_x, max_x), np.random.uniform(min_y, max_y))
+        while len(points) < number:
+            point = Point(random.uniform(min_x, max_x), random.uniform(min_y, max_y))
             if polygon.contains(point):
                 if i == 0:
                     points.append(point)
-                else:
-                    dist = [point.distance(x) for x in points]  # distances between points
+                if i != 0:
                     try:
                         points.append(point)
-                    except np.any(np.array(dist) < dist):
-                        continue
+                        dist = [point.distance(x) for x in points][:-1]
+                        # delete last point if distance to other points > dist
+                        if np.any(np.array(dist) < dist):
+                            points.pop()
                     except i > maxiter:
                         sys.exit(1)
                 i += 1
@@ -59,7 +59,10 @@ def random_points_in_polygon(shp, number=100, dist=10, maxiter=1000):
 
     # parallel processing through the list
     num_cores = multiprocessing.cpu_count()-2
-    return Parallel(n_jobs=num_cores)(delayed(_my_function)(polygon) for polygon in tqdm(myList))
+    # Parallel(n_jobs=n_jobs)(delayed(funciton)(parateters of function) for polygon in tqdm(myList))
+    outlist = Parallel(n_jobs=n_jobs)(delayed(my_function)(polygon) for polygon in tqdm(myList))
+
+    return pd.concat(outlist)
 
 
 if __name__ == "__main__":
