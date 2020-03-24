@@ -4,7 +4,7 @@
 #
 # ExtractValues.py
 #
-# A python script to extract raster values using a shapefile.
+# A python script to extract raster values using a shapefile and parralel proessing.
 # Results are stored in a CSV file
 #
 # Author: Javier Lopatin
@@ -39,35 +39,40 @@
 #
 ########################################################################################################
 
-import os, argparse, sys
+import os
+import argparse
+import sys
 import pandas as pd
 import numpy as np
+import multiprocessing
+from joblib import Parallel, delayed
 
 try:
-   import rasterio
+    import rasterio
 except ImportError:
-   print("ERROR: Could not import Rasterio Python library.")
-   print("Check if Rasterio is installed.")
+    print("ERROR: Could not import Rasterio Python library.")
+    print("Check if Rasterio is installed.")
 
 try:
     from rasterstats import zonal_stats
 except ImportError:
-   print("ERROR: Could not import rasterstats Python library.")
-   print("Check if rasterstats is installed.")
+    print("ERROR: Could not import rasterstats Python library.")
+    print("Check if rasterstats is installed.")
 
 try:
-   import shapefile
+    import shapefile
 except ImportError:
-   print("ERROR: Could not import PyShp Python library.")
-   print("Check if PyShp is installed.")
+    print("ERROR: Could not import PyShp Python library.")
+    print("Check if PyShp is installed.")
 
-def ExtractValues(raster, shp, func, ID):
+
+def ExtractValues(raster, shp, func, bandNames, labels, ID):
     """ Extract raster values by a shapefile mask.
     Several statistics are allowed.
     """
     # Raster management
     with rasterio.open(raster) as r:
-         bands = r.count
+        bands = r.count
     bandNames = []
     for i in range(bands):
         a = "B" + str(i+1)
@@ -81,105 +86,108 @@ def ExtractValues(raster, shp, func, ID):
 
     # empty matrix to store results
     matrix = np.empty((len(records), bands+1), dtype=object)
-    matrix[:,0] = id
+    matrix[:, 0] = id
     colnamesSHP = [ID]
 
     # Final colnames
     colNames = colnamesSHP + bandNames
 
     # Extract values
-    for i in range(bands):
-        # stats
+    def _funtion(i, shp, raster):
         stats = zonal_stats(shp, raster, stats=func, band=i+1)
-        x = pd.DataFrame(stats)
-        matrix[:,i+1] = x[func]
-
+        return pd.DataFrame(stats)
+    # parallel processing
+    stats = Parallel(n_jobs=num_cores)(delayed(_funtion)(i, shp, raster)
+                                       for i in tqdm(range(len(bandNames))))
     # set the final data frame
-    df = pd.DataFrame(matrix, columns=colNames)
-    return df
+    df = pd.concat(stats, axis=1)  # concatenate all dataframes into one
+    df.columns = bandNames  # add colum names
+    df.index = records[0]  # and shapefile ID to index
+    # save data to .CSV file
+    name = os.path.basename(raster)
+    df.to_csv(name[:-4] + ".csv", index=False, header=True, na_rep='NA')
 
-def ExtractPointValues(raster, shp, ID):
-    from rasterstats import point_query
+
+def ExtractPointValues(raster, shp, bandNames, labels, ID='FID'):
     """ Extract raster values by a shapefile point mask.
     """
-    # Raster management
-    with rasterio.open(raster) as r:
-         bands = r.count
-    bandNames = []
-    for i in range(bands):
-        a = "B" + str(i+1)
-        bandNames.append(a)
 
     # Shapefile management
     shape = shapefile.Reader(shp)
     records = pd.DataFrame(shape.records())
     n = pd.DataFrame(shape.fields)[0].values.tolist().index(ID)
-    id = records[n-1]
+    _id = records[n-1]
 
     # empty matrix to store results
-    matrix = np.empty((len(records), bands+1), dtype=object)
-    matrix[:,0] = id
+    matrix = np.empty((len(records), len(bandNames)+1), dtype=object)
+    matrix[:, 0] = _id
     colnamesSHP = [ID]
 
     # Final colnames
     colNames = colnamesSHP + bandNames
 
     # Extract values
-    for i in range(bands):
-        # stats
-        stats = point_query(shp, raster, band=i+1)
-        x = pd.DataFrame(stats)
-        matrix[:,i+1] = x[0]
+    for i in range(len(bandNames)):
+        # get values with parallel processing
+        num_cores = multiprocessing.cpu_count()
+    # ansilary function to be passed to parallel processing
 
-    # set the final data frame
-    df = pd.DataFrame(matrix, columns=colNames)
-    return df
+    def _funtion(i, shp, raster):
+        stats = point_query(shp, raster, band=i+1)
+        return pd.DataFrame(stats)
+    # parallel processing
+    stats = Parallel(n_jobs=num_cores)(delayed(_funtion)(i, shp, raster)
+                                       for i in tqdm(range(len(bandNames))))
+    x = pd.concat(stats, axis=1)  # concatenate all dataframes into one
+    x.columns = bandNames  # add colum names
+    x.index = records[0]  # and shapefile ID to index
+    # save data to .CSV file
+    name = os.path.basename(raster)
+    x.to_csv(name[:-4] + ".csv", index=False, header=True, na_rep='NA')
 
 
 if __name__ == "__main__":
 
     # create the arguments for the algorithm
     parser = argparse.ArgumentParser()
-    parser.add_argument('-r','--raster', help='Input raster', type=str)
+    parser.add_argument('-r', '--raster', help='Input raster', type=str)
     parser.add_argument('-s', '--shapefile', help='Input shapefile', type=str)
-    parser.add_argument('-f', '--function', help='Input function to extract [default = "mean"]', type=str, default="mean")
+    parser.add_argument(
+        '-f', '--function', help='Input function to extract [default = "mean"]', type=str, default="mean")
     parser.add_argument('-i', '--id', help='Shapefile ID to store in the CSV', type=str)
-    parser.add_argument('-p','--points', help='Shapefile are points',  action="store_true", default=False)
+    parser.add_argument('-p', '--points', help='Shapefile are points',
+                        action="store_true", default=False)
     parser.add_argument('--version', action='version', version='%(prog)s 1.0')
     args = vars(parser.parse_args())
 
     # run Extraction
     raster = args['raster']
-    shp    = args['shapefile']
-    ID     = args['id']
-    func   = args['function']
+    shp = args['shapefile']
+    ID = args['id']
+    func = args['function']
 
     # Check that the input parameter has been specified.
     if args['raster'] == None:
-       # Print an error message if not and exit.
-       print("Error: No input image file provided.")
-       sys.exit()
+        # Print an error message if not and exit.
+        print("Error: No input image file provided.")
+        sys.exit()
 
     if args['shapefile'] == None:
-       # Print an error message if not and exit.
-       print("Error: No input shapefile file provided.")
-       sys.exit()
+        # Print an error message if not and exit.
+        print("Error: No input shapefile file provided.")
+        sys.exit()
 
     if args['id'] == None:
-       # Print an error message if not and exit.
-       print("Error: No input id provided.")
-       sys.exit()
+        # Print an error message if not and exit.
+        print("Error: No input id provided.")
+        sys.exit()
 
-    if args['points']==True:
+    if args['points'] == True:
         if args['function'] == None:
-           # Print an error message if not and exit.
-           print("Error: No extracting function provided.")
-           sys.exit()
+            # Print an error message if not and exit.
+            print("Error: No extracting function provided.")
+            sys.exit()
 
         df = ExtractPointValues(raster, shp, ID)
     else:
         df = ExtractValues(raster, shp, func, ID)
-
-    # Save to CSV file
-    name = os.path.basename(raster)
-    df.to_csv(name[:-4] + ".csv", index=False, header=True, na_rep='NA')
