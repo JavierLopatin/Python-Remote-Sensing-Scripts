@@ -11,23 +11,26 @@
 # Author: Javier Lopatin
 # Email: javierlopatin@gmail.com
 # Date: 09/08/2016
-# Version: 1.0
+# Version: 2.0
+# Last checked: 23/11/2020
 #
 # Usage:
 #
 # python MNF.py -i <Imput raster>
 #               -c <Number of components [default = inputRaster bands]>
 #               -p <Preprocessing: Brightness Normalization of Hyperspectral data [Optional]>
-#               -s <Apply Savitzky Golay filtering [Optional]>
-#
+#               
 # # --preprop [-p]: Brightness Normalization presented in Feilhauer et al., 2010
 #
 # # examples:
 #             # Get the regular MNF transformation
-#             python MNF.py -i raster
+#             python MNF.py -i raster.tif
+#
+#             # Get the regular MNF transformation of the first component
+#             python MNF.py -i raster.tif -c 1
 #
 #             # with Brightness Normalization
-#             python MNF_cmd.py -i raster -p
+#             python MNF_cmd.py -i raster.tif -p
 #
 #
 #
@@ -42,17 +45,12 @@
 #
 ########################################################################################################################
 
+
 from __future__ import division
 import argparse
 import numpy as np
-import pandas as pd
-from sklearn.decomposition import PCA
-from sklearn.base import BaseEstimator, TransformerMixin
-try:
-   import rasterio
-except ImportError:
-   print("ERROR: Could not import Rasterio Python library.")
-   print("Check if Rasterio is installed.")
+from sklearn.decomposition import IncrementalPCA
+import rasterio
 
 try:
    import pysptools.noise as ns
@@ -60,59 +58,18 @@ except ImportError:
    print("ERROR: Could not import Pysptools Python library.")
    print("Check if Pysptools is installed.")
 
+#%%
 ################
 ### Functions
 ################
+def _norm(X):
+    return X / np.sqrt( np.sum((X**2), 0) )
+     
+def brightNorm(X):  
+    return np.apply_along_axis(_norm, 0, X)
 
 
-class MNF(BaseEstimator, TransformerMixin):
-    """
-    Apply a MNF transform to the image
-    'img' must have (raw, column, band) shape
-    """
-    def __init__(self, n_components=1, BrightnessNormalization=False):
-        self.n_components = n_components
-        self.BrightnessNormalization = BrightnessNormalization
-    def fit(self, X, y=None):
-        return self  # nothing else to do
-    def transform(self, X, y=None):
-        X = X.astype('float32')
-        # apply brightness normalization
-        # if raster
-        if self.BrightnessNormalization==True:
-            def norm(r):
-                    norm = r / np.sqrt( np.sum((r**2), 0) )
-                    return norm
-            if len(X.shape) == 3:
-                X = np.apply_along_axis(norm, 2, X)
-            # if 2D array
-            if len(X.shape) == 2:
-                    X = np.apply_along_axis(norm, 0, X)
-        w = ns.Whiten()
-        wdata = w.apply(X)
-        numBands = X.shape[2]
-        h, w, numBands = wdata.shape
-        X = np.reshape(wdata, (w*h, numBands))
-        pca = PCA()
-        mnf = pca.fit_transform(X)
-        mnf = np.reshape(mnf, (h, w, numBands))
-        mnf = mnf[:,:,:self.n_components]
-        var = np.cumsum(np.round(pca.explained_variance_ratio_, decimals=4)*100)
-        return mnf, var
-
-def saveMNF(img, inputRaster):
-    # Save TIF image to a nre directory of name MNF
-    img2 = np.transpose(img, [2,0,1]) # get to (band, raw, column) shape
-    output = outMNF
-    if args["preprop"]==True:
-        output = output[:-4] + "_BN.tif"
-    new_dataset = rasterio.open(output , 'w', driver='GTiff',
-               height=inputRaster.shape[0], width=inputRaster.shape[1],
-               count=img.shape[2], dtype=str(img.dtype),
-               crs=inputRaster.crs, transform=inputRaster.transform)
-    new_dataset.write(img2)
-    new_dataset.close()
-
+#%%
 ### Run process
 
 if __name__ == "__main__":
@@ -123,57 +80,73 @@ if __name__ == "__main__":
     parser.add_argument('-i','--inputRaster',
       help='Input raster', type=str, required=True)
     parser.add_argument('-c','--components',
-      help='Number of components.', type=int, default=False)
+      help='Number of components.', type=int, default=10000)
     parser.add_argument('-p','--preprop',
       help='Preprocessing: Brightness Normalization of Hyperspectral data [Optional].',
       action="store_true", default=False)
-    parser.add_argument('-s','--SavitzkyGolay',
-      help='Apply Savitzky Golay filtering [Optional].',  action="store_true", default=False)
-
-    parser.add_argument('--version', action='version', version='%(prog)s 1.0')
+  
+    parser.add_argument('--version', action='version', version='%(prog)s 2.0')
     args = vars(parser.parse_args())
 
     # data imputps/outputs
+    #inRaster = 'forestSample3.tif'
     inRaster = args["inputRaster"]
     outMNF = inRaster[:-4] + "_MNF.tif"
 
+    # Normalization?
+    BrightnessNormalization = args["preprop"]
+    
     # load raster
     with rasterio.open(inRaster) as r:
-        r2 = r.read() # transform to array
-
+        meta = r.profile # metadata
+        img = r.read()   # read as numpy array 
+        count = r.count  # number of bands
+        width = r.width
+        height = r.height
+        
     # set number of components to retrive
-    if args["components"] is not None:
+    if args['components'] == 10000:
+         n_components = count
+    else:
         n_components = args['components']
-    else:
-        n_components = r2.shape[0]
-
-    img = np.transpose(r2, [1,2,0]) # get to (raw, column, band) shape
     
-    #############
-    ### Apply MNF
-    # Apply Brightness Normalization if the option -p is added
-    if args["preprop"]==True:
-        print("Creating MNF components of " + inRaster)
-        model = MNF(n_components=n_components, BrightnessNormalization=True)
-        mnf, var = model.fit_transform(img)
-        print("The accumulative explained variance per component is:")
-        print(var)
-    # otherwie
-    else:
-        print("Creating MNF components of " + inRaster)
-        model = MNF(n_components=n_components)
-        mnf, var = model.fit_transform(img)
-        print("The accumulative explained variance per component is:")
-        print(var)
-
-    # save the MNF image and explained variance
-    saveMNF(mnf, r)
-    bandNames = []
-    for i in range(mnf.shape[2]):
-        a = "MNF" + str(i+1)
-        bandNames.append(a)
-    bandNames = pd.DataFrame(bandNames)
-    variance = pd.DataFrame(var)
-    txtOut = pd.concat([bandNames, variance], axis=1)
-    txtOut.columns=["Bands", "AccVariance"]
-    txtOut.to_csv(outMNF[:-4] + ".csv", index=False, header=True, na_rep='NA')
+    # apply Brigthness Normalization if needed
+    if BrightnessNormalization==True:
+        print('Applying preprocessing...')
+        img = brightNorm(img)
+        outMNF = outMNF[:-4]+'_prepro.tif'
+        print('Done!')
+    #%%   
+    # Apply NMF
+    img = np.transpose(img, [1,2,0]) 
+    img = img.reshape((width*height, count))
+    
+    # check for nan and inf
+    if np.any(np.isinf(img))==True:
+        img[img == np.inf] = 0
+    if np.any(np.isnan(img))==True:
+        img[img == np.nan] = 0
+    
+    # data whitenen
+    img=ns.whiten(img)        
+ 
+    # PCA
+    print('Applying NMF transformation...')
+    pca = IncrementalPCA()
+    img = pca.fit_transform(img)
+    print('Done!')
+    var = np.cumsum(np.round(pca.explained_variance_ratio_, decimals=4)*100)
+    print("The explained variance per component is:")
+    print(pca.explained_variance_ratio_)
+    print("The accumulative explained variance per component is:")
+    print(var)
+    
+    # save
+    np.savetxt(outMNF[:-4]+'_variance.txt', pca.explained_variance_ratio_)
+    np.savetxt(outMNF[:-4]+'_accVariance.txt', var)
+    img = img.reshape((height, width, count))
+    img = np.transpose(img, [2,0,1])    
+    meta.update(count=n_components, dtype='float32')
+    with rasterio.open(outMNF, "w", **meta) as dst:
+        dst.write(img[:n_components, :, :]) 
+        

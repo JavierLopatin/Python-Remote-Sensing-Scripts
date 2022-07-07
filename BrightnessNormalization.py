@@ -8,11 +8,13 @@
 #
 # Info: The script apply the Brightness Normalization presented in
 #       Feilhauer et al., 2010 to all rasters contained in a folder
+#       with parallel processing of raster chunks. The whole raster image is never
+#       completely loaded into memory
 #
 # Author: Javier Lopatin
 # Email: javierlopatin@gmail.com
-# Last changes: 07/12/2016
-# Version: 1.0
+# Last changes: 26/11/2020
+# Version: 2.0
 #
 # example: python BrightnessNormalization.py -i raster.tif
 #
@@ -25,48 +27,101 @@
 ########################################################################################################
 
 from __future__ import division
-import os, argparse
+import concurrent.futures
+from functools import partial
+import warnings
+import os
+import argparse
 import numpy as np
-from sklearn.base import BaseEstimator, TransformerMixin
-try:
-   import rasterio
-except ImportError:
-   print("ERROR: Could not import Rasterio Python library.")
-   print("Check if Rasterio is installed.")
+import rasterio
+from tqdm import tqdm     
 
 ############
 ## Functions
 ############
 
-class BrigthnessNormalization(BaseEstimator, TransformerMixin):
-    """
-    Brightness transformation of spectra as described in
-    Feilhauer, H., Asner, G. P., Martin, R. E., Schmidtlein, S. (2010): 
-    Brightness-normalized Partial Least Squares Regression for hyperspectral data. 
-    Journal of Quantitative Spectroscopy and Radiative Transfer 111(12-13),
-    1947–1957. 10.1016/j.jqsrt.2010.03.007
-    """
-    def __init__(self, img = True):
-        self.img = img
-    def fit(self, X, y=None):
-        return self  # nothing else to do
-    def transform(self, X, y=None):
-        # apply the normalization
-        def norm(r):
-            norm = r / np.sqrt( np.sum((r**2), 0) )
-            return norm
-        bn = np.apply_along_axis(norm, 2, X)
-        return bn.astype('float32')
+def _norm(X):
+    return X / np.sqrt( np.sum((X**2), 0) )
+     
+def _brightNorm(X):  
+    return np.apply_along_axis(_norm, 0, X)
 
-def saveRaster(img, inputRaster, outputName):
-    # Save created raster to TIFF
-    new_dataset = rasterio.open(outputName, 'w', driver='GTiff',
-               height=inputRaster.shape[0], width=inputRaster.shape[1],
-               count=int(img.shape[0]), dtype=str(img.dtype),
-               crs=inputRaster.crs, transform=inputRaster.transform)
-    new_dataset.write(img)
-    new_dataset.close()
+def _parallel_process(inData, outData, do_work, count, n_jobs, chuckSize,
+                      bandNames):
+    """
+    Process infile block-by-block with parallel processing
+    and write to a new file.
+    chunckSize needs to be divisible by 16
 
+    """
+    if chuckSize % 16 == 0:
+        # apply parallel processing with rasterio
+        with rasterio.Env():
+            with rasterio.open(inData) as src:
+                # Create a destination dataset based on source params. The
+                # destination will be tiled, and we'll process the tiles
+                # concurrently.
+                profile = src.profile
+                profile.update(blockxsize=chuckSize, blockysize=chuckSize,
+                               count=count, dtype='float64', tiled=True)
+
+                with rasterio.open(outData, "w", **profile) as dst:
+                    # Materialize a list of destination block windows
+                    # that we will use in several statements below.
+                    windows = [window for ij, window in dst.block_windows()]
+                    # This generator comprehension gives us raster data
+                    # arrays for each window. Later we will zip a mapping
+                    # of it with the windows list to get (window, result)
+                    # pairs.
+                    data_gen = (src.read(window=window) for window in windows)
+                    with concurrent.futures.ProcessPoolExecutor(
+                        max_workers=n_jobs
+                    ) as executor:
+                        # Map the a function over the raster
+                        # data generator, zip the resulting iterator with
+                        # the windows list, and as pairs come back we
+                        # write data to the destination dataset.
+                        for window, result in zip(
+                            tqdm(windows), executor.map(do_work, data_gen)
+                        ):
+                            dst.write(result, window=window)
+                    # save band description to metadata
+                    for i in range(profile['count']):
+                        dst.set_band_description(i + 1, bandNames[i])
+    else:
+        print('ERROR! chuckSize needs to be divisible by 16')
+
+
+def brightNorm(inData, n_jobs=4, chuckSize=256):
+    """
+    Process the Brightness Normalization in parallel
+
+    """
+
+    # get names for output bands
+    with rasterio.open(inData) as r:
+        count = r.count      # number of bands
+ 
+    bandNames = []
+    for i in range(count):
+        bandNames.append('MNF' + str([i]))
+
+    # call _getPheno2 function to lcoal
+    do_work = partial(_brightNorm)
+    
+    # out data
+    outData = inData[:-4]+"_BN.tif"
+
+    # apply PhenoShape with parallel processing
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            _parallel_process(inData, outData, do_work, count, n_jobs, chuckSize,
+                      bandNames)
+    except AttributeError:
+        print('ERROR in parallel processing...')
+
+#%%
 ### Run process
 
 if __name__ == "__main__":
@@ -75,20 +130,11 @@ if __name__ == "__main__":
    parser = argparse.ArgumentParser()
 
    parser.add_argument('-i','--input', help='Imput raster', type=str, required=True)
-   parser.add_argument('--version', action='version', version='%(prog)s 1.0')
+   parser.add_argument('--version', action='version', version='%(prog)s 2.0')
    args = vars(parser.parse_args())
 
    # input raster
    image = args["input"]
-
-   # open raster
-   name = os.path.basename(image)
-   r = rasterio.open(image)
-   img = r.read().astype('float32')
-   img = np.transpose(img, [1,2,0]) # get to (raw, column, band) shape 
-   # apply normalization
-   bn = BrigthnessNormalization()
-   bn = bn.fit_transform(img)
-   bn = np.transpose(bn, [2,0,1]) # get to (raw, column, band) shape 
-   # save created raster
-   saveRaster(bn, r, name[:-4]+"_BN.tif")
+   
+   # Apply normalization
+   brightNorm(inData)
