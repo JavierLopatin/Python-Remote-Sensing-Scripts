@@ -34,7 +34,7 @@ import os
 import argparse
 import numpy as np
 import rasterio
-from tqdm import tqdm     
+from tqdm import tqdm
 
 ############
 ## Functions
@@ -42,9 +42,9 @@ from tqdm import tqdm
 
 def _norm(X):
     return X / np.sqrt( np.sum((X**2), 0) )
-     
-def _brightNorm(X):  
-    return np.apply_along_axis(_norm, 0, X)
+
+def _brightNorm(X):
+    return np.apply_along_axis(_norm, 0, X).astype('float32')
 
 def _parallel_process(inData, outData, do_work, count, n_jobs, chuckSize,
                       bandNames):
@@ -63,7 +63,7 @@ def _parallel_process(inData, outData, do_work, count, n_jobs, chuckSize,
                 # concurrently.
                 profile = src.profile
                 profile.update(blockxsize=chuckSize, blockysize=chuckSize,
-                               count=count, dtype='float64', tiled=True)
+                               count=count, dtype='float32', tiled=True)
 
                 with rasterio.open(outData, "w", **profile) as dst:
                     # Materialize a list of destination block windows
@@ -101,14 +101,14 @@ def brightNorm(inData, n_jobs=4, chuckSize=256):
     # get names for output bands
     with rasterio.open(inData) as r:
         count = r.count      # number of bands
- 
+
     bandNames = []
     for i in range(count):
         bandNames.append('MNF' + str([i]))
 
     # call _getPheno2 function to lcoal
     do_work = partial(_brightNorm)
-    
+
     # out data
     outData = inData[:-4]+"_BN.tif"
 
@@ -134,7 +134,7 @@ if __name__ == "__main__":
    args = vars(parser.parse_args())
 
    # input raster
-   image = args["input"]
-   
+   inData = args["input"]
+
    # Apply normalization
    brightNorm(inData)
