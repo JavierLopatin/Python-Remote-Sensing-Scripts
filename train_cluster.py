@@ -24,7 +24,7 @@ import rasterio
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-import joblib
+import pickle
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
@@ -50,7 +50,9 @@ def test_PCA(inData):
     # Stop!!! ask for the best n_Clusters to be used. Enter the number in the terminal
     n_components = int(
         input("Please enter your selected number of components: "))
-    return PCA(n_components=n_components).fit(X_std)
+    pca = PCA(n_components=n_components).fit(X_std)
+    X_pca = pca.transform(X_std)
+    return pca, X_pca
 
 
 def test_cluster(X_pca):
@@ -70,7 +72,7 @@ def test_cluster(X_pca):
     plt.plot(n, silhouette, marker='o', alpha=0.75)
     plt.xlabel('Number of clusters')
     plt.ylabel('Silhouette index')
-    plt.savefig('Silhouette.png', res=400))
+    plt.savefig('Silhouette.png', res=400)
     plt.show()
     # Stop!!! ask for the best n_Clusters to be used. Enter the number in the terminal
     n_clusters = int(input("Please enter your selected number of clusters: "))
@@ -81,18 +83,27 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--inData', help='Input Data', type=str)
+    parser.add_argument('-d', '--drop', help='drop a column', type=int, required=False)
     parser.add_argument('--version', action='version', version='%(prog)s 1.0')
     args = vars(parser.parse_args())
 
-    inData = pd.read_csv(args['inData'])
-    inData = np.nan_to_num(inData)
+    inData = pd.read_csv(args['inData']).astype('float32')
+    inData = inData.dropna()
+
+    # drop undersirabe columns
+    if args['drop']:
+        inData.drop(inData.columns[[0]], axis=1, inplace=True)
 
     # test pca
-    pca = test_PCA(inData)
-    X_pca = pca.transform(inData)
+    pca, X_pca = test_PCA(inData)
     # test clusters
     cluster = test_cluster(X_pca)
 
     # save pipeline with best models
-    pipe = Pipeline([('pca', pca), ('cluster', cluster)])
-    joblib.dump(pipe, 'ClusterPipeline.pkl')
+    pipe = Pipeline([('std', ss), ('pca', pca), ('cluster', cluster)])
+    pipe = pipe.fit(inData)
+    # pipe.fit_predict(inData)
+
+    # save the model to disk
+    filename = 'ClusterPipeline.sav'
+    pickle.dump(pipe, open(filename, 'wb'))
