@@ -2,130 +2,157 @@
 
 ########################################################################################################
 #
-# BrightnessNormalization.py
+# apply_cluster.py
 #
-# A python script to perform Brigtness Normalization of hyperspectral data
+# A python script to perform apply KMeans clustering on Big Data Remote Sensing Data
 #
-# Info: The script apply the Brightness Normalization presented in
-#       Feilhauer et al., 2010 to all rasters contained in a folder
-#       with parallel processing of raster chunks. The whole raster image is never
-#       completely loaded into memory
 #
 # Author: Javier Lopatin
-# Email: javierlopatin@gmail.com
-# Last changes: 26/11/2020
-# Version: 2.0
+# Email: javier.lopatin@uai.cl
+# Last changes: 13/07/2022
+# Version: 1-0
 #
-# example: python BrightnessNormalization.py -i raster.tif
+# Parameters:
+#            -i: input raster data [str]
+#            -m: pre-trained KMeans model (see train_cluster.py) [str]
+#            -j: n_jobs, number of parallel jobs to run [int] [default=4]
+#            -c: chunckSize, size of the chuncks to split the original Big Data raster [int] [default=150; i.e., 150X150 pixeles]
 #
-# Bibliography:
-#
-# Feilhauer, H., Asner, G. P., Martin, R. E., Schmidtlein, S. (2010): Brightness-normalized Partial Least Squares
-# Regression for hyperspectral data. Journal of Quantitative Spectroscopy and Radiative Transfer 111(12-13),
-# pp. 1947–1957. 10.1016/j.jqsrt.2010.03.007
+# example:
+#           python apply_cluster.py -i raster.tif -m model.sav [with default -j and -c]
+#           python apply_cluster.py -i raster.tif -m model.sav -j 2 -c 100
 #
 ########################################################################################################
 
-from functools import partial
-import warnings
+
 import os
 import argparse
-import numpy as np
+import glob
+import multiprocessing
 import rasterio
+import pickle
+import numpy as np
+import xarray as xr
+import rioxarray as rio
+from rioxarray.merge import merge_arrays
 from tqdm import tqdm
-import joblib
+from shutil import rmtree
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
-from sklearn.cluster import AgglomerativeClustering
+from sklearn.cluster import KMeans
 
-def _apply(inModel):
-    return inModel.fit_predict(inData)
 
-def _parallel_process(inData, outData, do_work, count, n_jobs, chuckSize,
-                      bandNames):
-    """
-    Process infile block-by-block with parallel processing
-    and write to a new file.
-    chunckSize needs to be divisible by 16
-    """
-    if chuckSize % 16 == 0:
-        # apply parallel processing with rasterio
-        with rasterio.Env():
-            with rasterio.open(inData) as src:
-                # Create a destination dataset based on source params. The
-                # destination will be tiled, and we'll process the tiles
-                # concurrently.
-                profile = src.profile
-                profile.update(blockxsize=chuckSize, blockysize=chuckSize,
-                               count=count, dtype='float64', tiled=True)
+def process(X):
+    '''
+    Function to apply the pre-trained KMeans algorithm
 
-                with rasterio.open(outData, "w", **profile) as dst:
-                    # Materialize a list of destination block windows
-                    # that we will use in several statements below.
-                    windows = [window for ij, window in dst.block_windows()]
-                    # This generator comprehension gives us raster data
-                    # arrays for each window. Later we will zip a mapping
-                    # of it with the windows list to get (window, result)
-                    # pairs.
-                    data_gen = (src.read(window=window) for window in windows)
-                    with concurrent.futures.ProcessPoolExecutor(
-                        max_workers=n_jobs
-                    ) as executor:
-                        # Map the a function over the raster
-                        # data generator, zip the resulting iterator with
-                        # the windows list, and as pairs come back we
-                        # write data to the destination dataset.
-                        for window, result in zip(
-                            tqdm(windows), executor.map(do_work, data_gen)
-                        ):
-                            dst.write(result, window=window)
-                    # save band description to metadata
-                    for i in range(profile['count']):
-                        dst.set_band_description(i + 1, bandNames[i])
+    '''
+    img = rio.open_rasterio('temp/' + X)  # , chunks={'y':126, 'x':126})
+    img.values = img.values.astype('float64')
+    img_flat = img.stack(z=('y', 'x'))
+    img_flat = img_flat.transpose('z', 'band')
+    if np.isnan(img_flat.values).any():  # if data contain NaN
+        try:
+            id = np.isnan(img_flat).any(axis=1)
+            # predict only in clean data
+            predict = model.predict(img_flat[~id, :])
+            out = np.empty((img_flat.shape[0],))
+            out[:] = np.nan
+            out[~id] = predict  # fill emtpy array with predicted data
+            output_array = img_flat[:, 0]  # copy xarray shape and metadata
+            output_array = output_array.copy(data=out)
+            output_array = output_array.unstack()  # back to original XY shape
+            output_array.attrs['long_name'] = 'prediction'
+            output_array.rio.to_raster('out/' + X, dtype=np.float64)
+        except:  # if all data are NaN or if something goes wrong
+            output_array = img[0, :, :]
+            output_array.attrs['long_name'] = 'prediction'
+            output_array.rio.to_raster('out/' + X, dtype=np.float64)
     else:
-        print('ERROR! chuckSize needs to be divisible by 16')
+        out = model.predict(img_flat)
+        output_array = img_flat[:, 0]  # copy xarray shape and metadata
+        output_array = output_array.copy(data=out)
+        output_array = output_array.unstack()  # back to original XY shape
+        output_array.attrs['long_name'] = 'prediction'
+        output_array.rio.to_raster('out/' + X, dtype=np.float64)
 
-
-def apply_clust(inData, n_jobs, chuckSize):
-    """
-    Process the Brightness Normalization in parallel
-    """
-    # load joblib object
-    # os.chdir('/home/javierlopatin/Documentos/temp/Siusun')
-    # inData = 'phen.csv'
-    # inModel = 'ClusterPipeline.pkl'
-    model = joblib.load(inModel)
-
-    # call _getPheno2 function to lcoal
-    do_work = partial(_apply)
-
-    # out data
-    outData = inData[:-4]+"_model.tif"
-
-    # apply PhenoShape with parallel processing
-    try:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            _parallel_process(inData, outData, do_work, count, n_jobs, chuckSize,
-                      bandNames)
-    except AttributeError:
-        print('ERROR in parallel processing...')
-
-#%%
-### Run process
 
 if __name__ == "__main__":
 
-   # create the arguments for the algorithm
-   parser = argparse.ArgumentParser()
+    # create the arguments for the algorithm
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i', '--input', help='Imput raster',
+                        type=str, required=True)
+    parser.add_argument('-m', '--model', help='Imput model',
+                        type=str, required=True)
+    parser.add_argument(
+        '-j', '--n_jobs', help='Number of parallel jobs', type=int, default=4)
+    parser.add_argument(
+        '-c', '--chunckSize', help='Size of chunks to work with. Must be multiple of 16', type=int, default=150)
+    parser.add_argument('--version', action='version', version='%(prog)s 2.0')
+    args = vars(parser.parse_args())
 
-   parser.add_argument('-i','--input', help='Imput raster', type=str, required=True)
-   parser.add_argument('--version', action='version', version='%(prog)s 2.0')
-   args = vars(parser.parse_args())
+    # input raster
+    # os.chdir('/home/javierlopatin/Documentos/temp/Siusun')
+    inData = args["input"]
+    inModel = args["model"]
+    n_jobs = args["n_jobs"]
+    chunckSize = args["chunckSize"]
 
-   # input raster
-   image = args["input"]
+    print('')
+    print('#----------------------------------------------#')
+    print('Chosen setup')
+    print('#----------------------------------------------#')
+    print('')
+    print('n_jobs = ' + str(n_jobs))
+    print('chunckSize = '+str(chunckSize)+'X'+str(chunckSize)+' pixeles')
+    print('')
 
-   # Apply normalization
-   apply_clust(inData)
+    # load pre-trained model
+    model=pickle.load(open(inModel, 'rb'))
+
+    # create temp folder
+    if not os.path.exists("temp"):
+        os.makedirs("temp")
+    if not os.path.exists("out"):
+        os.makedirs("out")
+    # split raster into chunks and save them in temp folder
+    print('')
+    print('#----------------------------------------------#')
+    print('Splitting big raster into tiles (temp folder)')
+    print('#----------------------------------------------#')
+    print('')
+    os.system('gdal_retile.py -ps ' + str(chunckSize) + ' ' + \
+              str(chunckSize) + ' -targetDir temp/ ' + inData)
+
+    # list of tif files
+    imgs=os.listdir('temp/')
+
+    # apply clustering with parallel processing
+    print('')
+    print('#----------------------------------------------#')
+    print('Apply KMeans in parallel')
+    print('#----------------------------------------------#')
+    print('')
+    pool=multiprocessing.Pool(n_jobs)
+    for _ in tqdm(pool.imap_unordered(process, imgs), total=len(imgs)):
+        pass
+
+    # list outputs
+    imgs=os.listdir(path='out/')
+
+    # merge data using rioxarray
+    print('Merging all tiles...')
+    all=glob.glob('out/*.tif')
+    out=[]
+    for r in all:
+        out.append(rio.open_rasterio(r))
+    output=merge_arrays(out)
+    output.rio.to_raster(inData[:-4] + '_cluster.tif')
+
+    # delete temp and out folders
+    print('Deleting temporal folders...')
+    rmtree('temp')
+    rmtree('out')
+    print('Done!')

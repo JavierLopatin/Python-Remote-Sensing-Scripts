@@ -2,7 +2,7 @@
 ########################################################################################################################
 #
 # train_cluster.py
-# A python script to perform PCA transformation and clustering analysis using AgglomerativeClustering
+# A python script to perform PCA transformation and clustering analysis using KMeans
 #
 #
 # Author: Javier Lopatin
@@ -12,12 +12,13 @@
 #
 # Usage:
 #
-# python train_cluster.py -i <Input csv data>
+# python train_cluster.py -i <Input csv data> -d <if drop first column>
 #
 ##########################################################################################################################
 
 
 import argparse
+import os
 import pandas as pd
 import geopandas as gpd
 import rasterio
@@ -28,7 +29,7 @@ import pickle
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
-from sklearn.cluster import AgglomerativeClustering
+from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
 
@@ -36,7 +37,7 @@ def test_PCA(inData):
     # preprocessing
     # standardize variables
     ss = StandardScaler()
-    X_std = ss.fit_transform(np.nan_to_num(inData))
+    X_std = ss.fit_transform(np.nan_to_num(inData.values))
     # PCA
     pca = PCA()  # PCA with 3 primary components
     # fit and transform both PCA models
@@ -52,7 +53,7 @@ def test_PCA(inData):
         input("Please enter your selected number of components: "))
     pca = PCA(n_components=n_components).fit(X_std)
     X_pca = pca.transform(X_std)
-    return pca, X_pca
+    return ss.fit(np.nan_to_num(inData.values)), pca, X_pca
 
 
 def test_cluster(X_pca):
@@ -61,9 +62,9 @@ def test_cluster(X_pca):
     silhouette = []
     print('Processing clusters...')
     for i in tqdm(n):
-        clust = AgglomerativeClustering(n_clusters=i)
+        clust = KMeans(n_clusters=i)
         clust.fit(X_pca)
-        cluster_labels = clust.fit_predict(X_pca)
+        cluster_labels = clust.predict(X_pca)
         silhouette.append(silhouette_score(X_pca, cluster_labels))
 
     clust = pd.concat([pd.DataFrame(n), pd.DataFrame(silhouette)], axis=1)
@@ -76,17 +77,20 @@ def test_cluster(X_pca):
     plt.show()
     # Stop!!! ask for the best n_Clusters to be used. Enter the number in the terminal
     n_clusters = int(input("Please enter your selected number of clusters: "))
-    return AgglomerativeClustering(n_clusters=n_clusters).fit(X_pca)
+    return KMeans(n_clusters=n_clusters).fit(X_pca)
 
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--inData', help='Input Data', type=str)
-    parser.add_argument('-d', '--drop', help='drop a column', type=int, required=False)
+    parser.add_argument(
+        '-d', '--drop', help='drop first column', action='store_true')
     parser.add_argument('--version', action='version', version='%(prog)s 1.0')
     args = vars(parser.parse_args())
 
+    # os.chdir('/home/javierlopatin/Documentos/temp/Siusun/')
+    # inData = pd.read_csv('points_phenoshape.csv')
     inData = pd.read_csv(args['inData']).astype('float32')
     inData = inData.dropna()
 
@@ -95,14 +99,12 @@ if __name__ == "__main__":
         inData.drop(inData.columns[[0]], axis=1, inplace=True)
 
     # test pca
-    pca, X_pca = test_PCA(inData)
+    std, pca, X_pca = test_PCA(inData)
     # test clusters
     cluster = test_cluster(X_pca)
 
     # save pipeline with best models
-    pipe = Pipeline([('std', ss), ('pca', pca), ('cluster', cluster)])
-    pipe = pipe.fit(inData)
-    # pipe.fit_predict(inData)
+    pipe = Pipeline([('std', std), ('pca', pca), ('cluster', cluster)])
 
     # save the model to disk
     filename = 'ClusterPipeline.sav'
