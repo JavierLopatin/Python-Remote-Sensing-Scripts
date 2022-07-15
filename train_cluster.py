@@ -30,7 +30,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
+from yellowbrick.cluster import KElbowVisualizer
 
 
 def test_PCA(inData):
@@ -69,23 +69,13 @@ def test_cluster(X_pca):
     # The best value is 1 and the worst value is -1. Values near 0 indicate overlapping clusters.
     silhouette = []
     print('Processing clusters...')
-    for i in tqdm(n):
-        clust = KMeans(n_clusters=i)
-        clust.fit(X_pca)
-        cluster_labels = clust.predict(X_pca)
-        silhouette.append(silhouette_score(X_pca, cluster_labels))
-
-    clust = pd.concat([pd.DataFrame(n), pd.DataFrame(silhouette)], axis=1)
-    clust.columns = ['clusters', 'silhouette']
-    print(clust)
-    plt.plot(n, silhouette, marker='o', alpha=0.75)
-    plt.xlabel('Number of clusters')
-    plt.ylabel('Silhouette index')
-    plt.savefig('Silhouette.png', res=400)
-    plt.show()
+    model = KMeans(random_state=42)
+    elb_visualizer = KElbowVisualizer(model, k=(2,15), metric='silhouette')
+    elb_visualizer.fit(X_pca)
+    elb_visualizer.show()
     # Stop!!! ask for the best n_Clusters to be used. Enter the number in the terminal
     n_clusters = int(input("Please enter your selected number of clusters: "))
-    return KMeans(n_clusters=n_clusters).fit(X_pca)
+    return KMeans(n_clusters=n_clusters, random_state=42).fit(X_pca)
 
 
 if __name__ == "__main__":
