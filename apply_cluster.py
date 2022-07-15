@@ -43,12 +43,15 @@ from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 
 
-def process(X):
+def process(X, model, save=True):
     '''
     Function to apply the pre-trained KMeans algorithm
 
     '''
-    img = rio.open_rasterio('temp/' + X)  # , chunks={'y':126, 'x':126})
+    if isinstance(X, str):
+        img = rio.open_rasterio('temp/' + X)  # , chunks={'y':126, 'x':126})
+    else:
+        img=X
     img.values = img.values.astype('float64')
     img_flat = img.stack(z=('y', 'x'))
     img_flat = img_flat.transpose('z', 'band')
@@ -64,18 +67,19 @@ def process(X):
             output_array = output_array.copy(data=out)
             output_array = output_array.unstack()  # back to original XY shape
             output_array.attrs['long_name'] = 'prediction'
-            output_array.rio.to_raster('out/' + X, dtype=np.float64)
         except:  # if all data are NaN or if something goes wrong
             output_array = img[0, :, :]
             output_array.attrs['long_name'] = 'prediction'
-            output_array.rio.to_raster('out/' + X, dtype=np.float64)
     else:
         out = model.predict(img_flat)
         output_array = img_flat[:, 0]  # copy xarray shape and metadata
         output_array = output_array.copy(data=out)
         output_array = output_array.unstack()  # back to original XY shape
         output_array.attrs['long_name'] = 'prediction'
+    if save == True:
         output_array.rio.to_raster('out/' + X, dtype=np.float64)
+    else:
+        return output_array
 
 
 if __name__ == "__main__":

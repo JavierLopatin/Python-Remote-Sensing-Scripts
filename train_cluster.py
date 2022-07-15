@@ -37,7 +37,10 @@ def test_PCA(inData):
     # preprocessing
     # standardize variables
     ss = StandardScaler()
-    X_std = ss.fit_transform(np.nan_to_num(inData.values))
+    if isinstance(inData, np.ndarray):
+        X_std = ss.fit_transform(np.nan_to_num(inData))
+    else:
+        X_std = ss.fit_transform(np.nan_to_num(inData.values))
     # PCA
     pca = PCA()  # PCA with 3 primary components
     # fit and transform both PCA models
@@ -53,7 +56,12 @@ def test_PCA(inData):
         input("Please enter your selected number of components: "))
     pca = PCA(n_components=n_components).fit(X_std)
     X_pca = pca.transform(X_std)
-    return ss.fit(np.nan_to_num(inData.values)), pca, X_pca
+    if isinstance(inData, np.ndarray):
+        X_std = ss.fit(np.nan_to_num(inData))
+    else:
+        X_std = ss.fit(np.nan_to_num(inData.values))
+
+    return X_std, pca, X_pca
 
 
 def test_cluster(X_pca):
