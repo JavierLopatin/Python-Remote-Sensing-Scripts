@@ -22,13 +22,17 @@ args = vars(parser.parse_args())
 # set argument
 shp = args["inputShapefile"]
 
-# read vector file
 vector = gpd.read_file(shp)
-# add dummy field to perform the dissolve
-vector.loc[:, "dissolve"] = 1
-# perform dissolve
-print("Dissolving vector file...")
-vector = vector.dissolve(by = "dissolve")
+
+def dissolve_all(vector):
+    # add dummy field to perform the dissolve
+    vector.loc[:, "dissolve"] = 1
+    # perform dissolve
+    print("Dissolving vector file...")
+    return vector.dissolve(by = "dissolve")
+
+vector =  dissolve_all(shp):
+
 # save new vector
 vector.to_file(shp[:-4] + "_diss.shp")
 print("Done!")
