@@ -13,7 +13,7 @@
 #
 # Author: Javier Lopatin
 # Email: javierlopatin@gmail.com
-# Last changes: 26/11/2020
+# Last changes: 19/05/2023
 # Version: 2.0
 #
 # example: python BrightnessNormalization.py -i raster.tif
@@ -40,11 +40,12 @@ from tqdm import tqdm
 ## Functions
 ############
 
-def _norm(X):
-    return X / np.sqrt( np.sum((X**2), 0) )
+def _normalize_vector(X):
+    X = np.array(X, dtype='float32') # esto es lo nuevo
+    return X / np.sqrt(np.sum((X**2)))
 
 def _brightNorm(X):
-    return np.apply_along_axis(_norm, 0, X).astype('float32')
+    return np.apply_along_axis(_normalize_vector, 0, X).astype(np.float32)
 
 def _parallel_process(inData, outData, do_work, count, n_jobs, chuckSize,
                       bandNames):
@@ -104,15 +105,15 @@ def brightNorm(inData, n_jobs=4, chuckSize=256):
 
     bandNames = []
     for i in range(count):
-        bandNames.append('MNF' + str([i]))
+        bandNames.append('B' + str([i]))
 
-    # call _getPheno2 function to lcoal
+    # function to apply
     do_work = partial(_brightNorm)
 
     # out data
     outData = inData[:-4]+"_BN.tif"
 
-    # apply PhenoShape with parallel processing
+    # apply parallel processing
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
